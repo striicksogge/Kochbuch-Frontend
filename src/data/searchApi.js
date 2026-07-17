@@ -1,4 +1,4 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://kochbuch-vmiy.onrender.com";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://kochbuch-backend-v5l3.onrender.com";
 
 /**
  * Schickt die Sucheingabe + kompakte Rezeptliste ans Backend, bekommt
