@@ -25,6 +25,7 @@ export function createRecipe(data) {
     cookTime: data.cookTime?.trim() || "",
     caloriesPerServing: data.caloriesPerServing ? Number(data.caloriesPerServing) : null,
     notes: data.notes?.trim() || "",
+    lastCookedAt: null,
     ingredients: data.ingredients || [],
     steps: data.steps || [],
     categories: data.categories || [],
@@ -86,5 +87,13 @@ export function toggleFavorite(id) {
   const index = recipes.findIndex((r) => r.id === id);
   if (index === -1) return;
   recipes[index] = { ...recipes[index], isFavorite: !recipes[index].isFavorite };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+}
+
+export function markAsCooked(id) {
+  const recipes = getAllRecipes();
+  const index = recipes.findIndex((r) => r.id === id);
+  if (index === -1) return;
+  recipes[index] = { ...recipes[index], lastCookedAt: new Date().toISOString() };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
 }
