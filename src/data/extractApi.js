@@ -3,7 +3,7 @@
 // Umgebungsvariable, damit sie nicht hart im Code steht – mit Fallback
 // auf die bereits bestehende, funktionierende Render-Instanz.
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://kochbuch-vmiy.onrender.com";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://kochbuch-backend-v5l3.onrender.com";
 
 /**
  * Ruft POST /extract auf und liefert die strukturierten Rezeptdaten.
