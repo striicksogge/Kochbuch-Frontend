@@ -29,3 +29,22 @@ export async function importFromLink(url) {
 
   return response.json(); // { platform, title, image, ingredients, steps, warning? }
 }
+
+/**
+ * Manueller Fallback: für Rezepte, die nicht in der Caption stehen
+ * (nur im Video gesprochen oder in den Kommentaren) - der Nutzer fügt
+ * den Text selbst ein, dieselbe Claude-Extraktion strukturiert ihn.
+ */
+export async function extractFromText(text) {
+  const response = await fetch(`${BACKEND_URL}/extract-text`, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Backend antwortete mit Status ${response.status}`);
+  }
+
+  return response.json(); // { title, ingredients, steps, cookTime, caloriesPerServing }
+}
