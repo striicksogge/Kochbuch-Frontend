@@ -43,7 +43,8 @@ export default function Onboarding({ onFinish }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-cream px-6 pb-8 pt-14">
       <div className="flex-1">
-        <p className="font-display text-2xl font-semibold text-ink">Willkommen bei Recipi</p>
+        <img src="./logo.png" alt="Recipi" className="mx-auto w-28" />
+        <p className="mt-4 font-display text-2xl font-semibold text-ink">Willkommen bei Recipi</p>
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">
           Dein persönliches Kochbuch für Rezepte, die du sonst nur einmal siehst und nie
           wiederfindest.

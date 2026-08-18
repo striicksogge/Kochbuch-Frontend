@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { BookOpen } from "lucide-react";
 
 const SPLASH_DURATION_MS = 1100;
 const FADE_DURATION_MS = 300;
@@ -27,10 +26,7 @@ export default function SplashScreen({ onFinish }) {
         fadingOut ? "opacity-0" : "opacity-100"
       }`}
     >
-      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-olive text-cream">
-        <BookOpen size={28} />
-      </span>
-      <span className="font-display text-2xl font-semibold text-ink">Recipi</span>
+      <img src="./logo.png" alt="Recipi" className="w-48" />
     </div>
   );
 }
