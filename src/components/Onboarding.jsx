@@ -1,4 +1,5 @@
 import { Link2, Sparkles, CalendarDays, Heart } from "lucide-react";
+import { markWhatsNewSeen } from "../data/whatsNew";
 
 const STORAGE_KEY = "kochbuch_v2_onboarding_seen";
 
@@ -38,6 +39,7 @@ const FEATURES = [
 export default function Onboarding({ onFinish }) {
   function handleStart(withTour) {
     localStorage.setItem(STORAGE_KEY, "true");
+    markWhatsNewSeen(); // Onboarding stellt die aktuellen Funktionen schon vor
     onFinish(withTour);
   }
 

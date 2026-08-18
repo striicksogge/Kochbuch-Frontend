@@ -2,6 +2,8 @@
 // später leicht gegen eine echte Datenbank austauschbar, ohne dass
 // Komponenten sich ändern müssten (nur dieser Datei-Inhalt würde sich ändern).
 
+import { ALL_CATEGORIES } from "./categories";
+
 const STORAGE_KEY = "kochbuch_v2_recipes";
 
 export function getAllRecipes() {
@@ -21,6 +23,7 @@ export function createRecipe(data) {
     title: data.title?.trim() || "Unbenanntes Rezept",
     description: data.description?.trim() || "",
     image: data.image?.trim() || "",
+    images: data.images || [], // weitere Fotos, getrennt vom Cover-Bild oben
     servings: data.servings ? Number(data.servings) : 4,
     cookTime: data.cookTime?.trim() || "",
     caloriesPerServing: data.caloriesPerServing ? Number(data.caloriesPerServing) : null,
@@ -30,6 +33,7 @@ export function createRecipe(data) {
     steps: data.steps || [],
     categories: data.categories || [],
     isFavorite: false,
+    wantToCook: false,
     sourceUrl: data.sourceUrl || null, // gesetzt, wenn per Link importiert
     platform: data.platform || null,
   };
@@ -48,6 +52,7 @@ export function updateRecipe(id, data) {
     title: data.title?.trim() || recipes[index].title,
     description: data.description?.trim() ?? recipes[index].description,
     image: data.image?.trim() ?? recipes[index].image,
+    images: data.images ?? recipes[index].images ?? [],
     servings: data.servings ? Number(data.servings) : recipes[index].servings,
     cookTime: data.cookTime?.trim() ?? recipes[index].cookTime,
     caloriesPerServing:
@@ -96,4 +101,60 @@ export function markAsCooked(id) {
   if (index === -1) return;
   recipes[index] = { ...recipes[index], lastCookedAt: new Date().toISOString() };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+}
+
+export function toggleWantToCook(id) {
+  const recipes = getAllRecipes();
+  const index = recipes.findIndex((r) => r.id === id);
+  if (index === -1) return;
+  recipes[index] = { ...recipes[index], wantToCook: !recipes[index].wantToCook };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+}
+
+/**
+ * Legt eine Kopie eines Rezepts als Basis für eine Variante an - eigene
+ * ID, ohne Favorit/Merkliste/Kochstatus/Quelle des Originals, Titel mit
+ * „(Kopie)"-Suffix zum sofortigen Umbenennen beim Bearbeiten.
+ */
+export function duplicateRecipe(id) {
+  const original = getRecipeById(id);
+  if (!original) return null;
+
+  const recipes = getAllRecipes();
+  const copy = {
+    ...original,
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    title: `${original.title} (Kopie)`,
+    createdAt: new Date().toISOString(),
+    lastCookedAt: null,
+    isFavorite: false,
+    wantToCook: false,
+    sourceUrl: null,
+    platform: null,
+  };
+  recipes.unshift(copy);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  return copy;
+}
+
+/**
+ * Einmalige Datenbereinigung: entfernt Kategorie-Tags aus Bestandsdaten,
+ * die inzwischen aus categories.js entfernt wurden (z. B. alte Kategorien
+ * wie „Vegan"/„Partyfood") und in der Auswahl-UI ohnehin nicht mehr
+ * anklickbar sind. Läuft beim App-Start, schreibt nur, wenn sich
+ * tatsächlich etwas ändert.
+ */
+export function cleanupStaleCategories() {
+  const recipes = getAllRecipes();
+  let changed = false;
+  const cleaned = recipes.map((r) => {
+    const validCategories = (r.categories || []).filter((c) => ALL_CATEGORIES.includes(c));
+    if (validCategories.length !== (r.categories || []).length) {
+      changed = true;
+      return { ...r, categories: validCategories };
+    }
+    return r;
+  });
+  if (changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+  return changed;
 }

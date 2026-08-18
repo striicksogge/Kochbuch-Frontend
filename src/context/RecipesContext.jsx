@@ -10,7 +10,10 @@ const RecipesContext = createContext(null);
  * unabhängige Kopie des States hätte.
  */
 export function RecipesProvider({ children }) {
-  const [recipes, setRecipes] = useState(() => storage.getAllRecipes());
+  const [recipes, setRecipes] = useState(() => {
+    storage.cleanupStaleCategories();
+    return storage.getAllRecipes();
+  });
 
   const addRecipe = useCallback((data) => {
     const created = storage.createRecipe(data);
@@ -43,9 +46,30 @@ export function RecipesProvider({ children }) {
     setRecipes(storage.getAllRecipes());
   }, []);
 
+  const toggleWantToCook = useCallback((id) => {
+    storage.toggleWantToCook(id);
+    setRecipes(storage.getAllRecipes());
+  }, []);
+
+  const duplicateRecipe = useCallback((id) => {
+    const copy = storage.duplicateRecipe(id);
+    setRecipes(storage.getAllRecipes());
+    return copy;
+  }, []);
+
   return (
     <RecipesContext.Provider
-      value={{ recipes, addRecipe, editRecipe, removeRecipe, toggleFavorite, restoreRecipe, markAsCooked }}
+      value={{
+        recipes,
+        addRecipe,
+        editRecipe,
+        removeRecipe,
+        toggleFavorite,
+        restoreRecipe,
+        markAsCooked,
+        toggleWantToCook,
+        duplicateRecipe,
+      }}
     >
       {children}
     </RecipesContext.Provider>

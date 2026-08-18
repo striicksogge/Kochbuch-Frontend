@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Plus, X, Upload, Loader2 } from "lucide-react";
+import { Plus, X, Upload, Loader2, Images } from "lucide-react";
 import CategorySelector from "./CategorySelector";
 import { normalizeIngredients } from "../data/ingredients";
 import { fileToCompressedDataUrl } from "../data/imageUtils";
@@ -19,6 +19,10 @@ export default function RecipeFormFields({ initialValues = {}, onSubmit, onCance
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef(null);
+  const [images, setImages] = useState(initialValues.images || []);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [imagesError, setImagesError] = useState("");
+  const extraPhotosInputRef = useRef(null);
   // Falls das Rezept importiert wurde und das Bild-Feld noch genau den
   // ursprünglichen (fremden) Link enthält: Rohlink im Feld verstecken,
   // Platzhalter zum Screenshot-Ersetzen anzeigen. Sobald der Wert sich
@@ -61,6 +65,26 @@ export default function RecipeFormFields({ initialValues = {}, onSubmit, onCance
     }
   }
 
+  async function handleExtraPhotosSelect(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setImagesError("");
+    setIsUploadingImages(true);
+    try {
+      const dataUrls = await Promise.all(files.map(fileToCompressedDataUrl));
+      setImages((prev) => [...prev, ...dataUrls]);
+    } catch (err) {
+      setImagesError(err.message || "Fotos konnten nicht verarbeitet werden.");
+    } finally {
+      setIsUploadingImages(false);
+      e.target.value = ""; // erlaubt erneute Auswahl derselben Datei(en)
+    }
+  }
+
+  function removeExtraPhoto(index) {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function removeIngredientRow(id) {
     setIngredients((prev) => prev.filter((ing) => ing.id !== id));
   }
@@ -82,6 +106,7 @@ export default function RecipeFormFields({ initialValues = {}, onSubmit, onCance
       title,
       description,
       image,
+      images,
       servings,
       cookTime,
       caloriesPerServing,
@@ -164,6 +189,47 @@ export default function RecipeFormFields({ initialValues = {}, onSubmit, onCance
             >
               <X size={14} />
             </button>
+          </div>
+        )}
+      </Field>
+
+      <Field label="Weitere Fotos (optional)">
+        <p className="mb-2 text-xs text-ink-soft">
+          Z. B. dein eigenes Ergebnisfoto, getrennt vom Titelbild oben.
+        </p>
+        <button
+          type="button"
+          onClick={() => extraPhotosInputRef.current?.click()}
+          disabled={isUploadingImages}
+          className="flex items-center gap-1.5 rounded-[0.9rem] border border-sand-line bg-cream-card px-3 py-2 text-sm text-ink disabled:opacity-60"
+        >
+          {isUploadingImages ? <Loader2 size={16} className="animate-spin" /> : <Images size={16} />}
+          Fotos hinzufügen
+        </button>
+        <input
+          ref={extraPhotosInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleExtraPhotosSelect}
+          className="hidden"
+        />
+        {imagesError && <p className="mt-1.5 text-xs text-red-700">{imagesError}</p>}
+        {images.length > 0 && (
+          <div className="mt-2 grid grid-cols-4 gap-2">
+            {images.map((src, i) => (
+              <div key={i} className="relative aspect-square">
+                <img src={src} alt="" className="h-full w-full rounded-lg object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeExtraPhoto(i)}
+                  aria-label="Foto entfernen"
+                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/60 text-cream"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </Field>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Clock, Users, Pencil, Trash2, ArrowLeft, ExternalLink, Heart, Minus, Plus, Flame, ChefHat, Check, CalendarPlus, ShoppingCart } from "lucide-react";
+import { Clock, Users, Pencil, Trash2, ArrowLeft, ExternalLink, Heart, Bookmark, Copy, Minus, Plus, Flame, ChefHat, Check, CalendarPlus, ShoppingCart } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
 import { useToast } from "../context/ToastContext";
 import { scaleAmount } from "../data/ingredients";
@@ -25,7 +25,8 @@ function formatRelativeDate(isoString) {
 export default function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { recipes, removeRecipe, restoreRecipe, toggleFavorite, markAsCooked } = useRecipes();
+  const { recipes, removeRecipe, restoreRecipe, toggleFavorite, markAsCooked, toggleWantToCook, duplicateRecipe } =
+    useRecipes();
   const { showToast } = useToast();
 
   const recipe = recipes.find((r) => r.id === id);
@@ -83,6 +84,13 @@ export default function RecipeDetail() {
     );
   }
 
+  function handleDuplicate() {
+    const copy = duplicateRecipe(recipe.id);
+    if (!copy) return;
+    navigate(`/recipe/${copy.id}/edit`);
+    showToast({ message: `"${recipe.title}" dupliziert` });
+  }
+
   function handleDelete() {
     const confirmed = window.confirm(`"${recipe.title}" löschen?`);
     if (!confirmed) return;
@@ -122,18 +130,32 @@ export default function RecipeDetail() {
           <ArrowLeft size={20} />
         </button>
 
-        <button
-          type="button"
-          onClick={() => toggleFavorite(recipe.id)}
-          aria-label={recipe.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
-          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-cream/90 shadow-md backdrop-blur"
-        >
-          <Heart
-            size={20}
-            strokeWidth={2}
-            className={recipe.isFavorite ? "fill-honey text-honey" : "text-ink"}
-          />
-        </button>
+        <div className="absolute right-4 top-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => toggleWantToCook(recipe.id)}
+            aria-label={recipe.wantToCook ? 'Von "Will ich noch kochen" entfernen' : 'Zu "Will ich noch kochen" hinzufügen'}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-cream/90 shadow-md backdrop-blur"
+          >
+            <Bookmark
+              size={20}
+              strokeWidth={2}
+              className={recipe.wantToCook ? "fill-olive text-olive" : "text-ink"}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleFavorite(recipe.id)}
+            aria-label={recipe.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-cream/90 shadow-md backdrop-blur"
+          >
+            <Heart
+              size={20}
+              strokeWidth={2}
+              className={recipe.isFavorite ? "fill-honey text-honey" : "text-ink"}
+            />
+          </button>
+        </div>
       </div>
 
       <div className="px-4 pt-5">
@@ -141,6 +163,19 @@ export default function RecipeDetail() {
 
         {recipe.description && (
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">{recipe.description}</p>
+        )}
+
+        {recipe.images?.length > 0 && (
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {recipe.images.map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt=""
+                className="h-24 w-24 shrink-0 rounded-[var(--radius-card)] object-cover"
+              />
+            ))}
+          </div>
         )}
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-soft">
@@ -220,6 +255,13 @@ export default function RecipeDetail() {
           >
             <Pencil size={15} /> Bearbeiten
           </Link>
+          <button
+            type="button"
+            onClick={handleDuplicate}
+            className="flex items-center gap-1.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream-card px-4 py-2 text-sm font-medium text-ink"
+          >
+            <Copy size={15} /> Duplizieren
+          </button>
           <button
             type="button"
             onClick={handleDelete}

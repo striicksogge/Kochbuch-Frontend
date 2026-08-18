@@ -3,15 +3,18 @@ import { Routes, Route, useSearchParams } from "react-router-dom";
 import { RecipesProvider } from "./context/RecipesContext";
 import { ToastProvider } from "./context/ToastContext";
 import { activateTesterModeFromParams } from "./data/testerMode";
+import { hasSeenLatestWhatsNew } from "./data/whatsNew";
 import SplashScreen from "./components/SplashScreen";
 import Onboarding, { hasSeenOnboarding } from "./components/Onboarding";
 import AppTour from "./components/AppTour";
+import WhatsNewModal from "./components/WhatsNewModal";
 import Home from "./pages/Home";
 import RecipeDetail from "./pages/RecipeDetail";
 import RecipeForm from "./pages/RecipeForm";
 import AddRecipe from "./pages/AddRecipe";
 import SearchPage from "./pages/SearchPage";
 import Favorites from "./pages/Favorites";
+import WantToCook from "./pages/WantToCook";
 import ShoppingListPage from "./pages/ShoppingListPage";
 import MealPlanPage from "./pages/MealPlanPage";
 import AllRecipesPage from "./pages/AllRecipesPage";
@@ -35,6 +38,11 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
   const [tourActive, setTourActive] = useState(false);
+  // Nur für bestehende Nutzer relevant - Erststarter sehen die aktuellen
+  // Funktionen bereits im Onboarding (siehe Onboarding.jsx).
+  const [showWhatsNew, setShowWhatsNew] = useState(
+    () => hasSeenOnboarding() && !hasSeenLatestWhatsNew()
+  );
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -67,6 +75,7 @@ export default function App() {
             <Route path="/recipe/:id/edit" element={<RecipeForm />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/want-to-cook" element={<WantToCook />} />
             <Route path="/shopping-list" element={<ShoppingListPage />} />
             <Route path="/meal-plan" element={<MealPlanPage />} />
             <Route path="/all-recipes" element={<AllRecipesPage />} />
@@ -75,6 +84,7 @@ export default function App() {
           <BottomNav />
         </div>
         {tourActive && <AppTour onFinish={() => setTourActive(false)} />}
+        {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
       </RecipesProvider>
     </ToastProvider>
   );
