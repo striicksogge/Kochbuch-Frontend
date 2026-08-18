@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Routes, Route, useSearchParams } from "react-router-dom";
 import { RecipesProvider } from "./context/RecipesContext";
 import { ToastProvider } from "./context/ToastContext";
+import { activateTesterModeFromParams } from "./data/testerMode";
 import SplashScreen from "./components/SplashScreen";
 import Onboarding, { hasSeenOnboarding } from "./components/Onboarding";
 import Home from "./pages/Home";
@@ -23,10 +24,19 @@ import BottomNav from "./components/BottomNav";
  * Vor der eigentlichen App zwei Zwischenschritte: Splash-Screen (bei
  * JEDEM Start kurz sichtbar) und Onboarding (nur beim allerersten
  * Start, danach dauerhaft übersprungen).
+ *
+ * Testmodus: Ein Link mit ?tester=1 aktiviert dauerhaft (in diesem
+ * Browser) ein Test-Limit von 10 Importen, siehe data/testerMode.js
+ * und AddRecipe.jsx.
  */
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    activateTesterModeFromParams(searchParams);
+  }, [searchParams]);
 
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;

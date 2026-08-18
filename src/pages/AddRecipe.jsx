@@ -4,6 +4,13 @@ import { ArrowLeft, Link2, PenLine, Loader2, CopyCheck, ClipboardPaste } from "l
 import { useRecipes } from "../context/RecipesContext";
 import { importFromLink, extractFromText } from "../data/extractApi";
 import { hasEnglishUnits } from "../data/ingredients";
+import {
+  isTesterMode,
+  getImportsRemaining,
+  hasReachedImportLimit,
+  recordSuccessfulImport,
+  TESTER_IMPORT_LIMIT,
+} from "../data/testerMode";
 import RecipeFormFields from "../components/RecipeFormFields";
 import ImageDisclaimerBanner from "../components/ImageDisclaimerBanner";
 import EnglishUnitsNotice, { isEnglishUnitsNoticeHidden } from "../components/EnglishUnitsNotice";
@@ -68,6 +75,16 @@ export default function AddRecipe() {
       return;
     }
 
+    // Testversion: Instagram-Import funktioniert praktisch nie (siehe
+    // project-context.md), deshalb in der Testphase gar nicht erst
+    // versuchen, statt Testern einen fehlschlagenden Import zuzumuten.
+    if (isTesterMode() && url.toLowerCase().includes("instagram.com")) {
+      setImportError(
+        "Instagram wird in der Testversion nicht unterstützt (der automatische Import funktioniert dort kaum). Bitte einen TikTok- oder Pinterest-Link verwenden."
+      );
+      return;
+    }
+
     // Einfacher Duplikat-Check: gleicher Link bereits gespeichert?
     const existing = recipes.find(
       (r) => r.sourceUrl && normalizeUrl(r.sourceUrl) === normalizeUrl(url)
@@ -91,18 +108,26 @@ export default function AddRecipe() {
         sourceUrl: url,
         platform: result.platform || null,
       };
+      // Praktisch nichts gefunden (Titel leer, keine Zutaten, keine
+      // Schritte) -> das Rezept steht vermutlich nicht in der Caption,
+      // sondern nur im Video oder in den Kommentaren.
+      const foundNothing =
+        !newPrefill.title && newPrefill.ingredients.length === 0 && newPrefill.steps.length === 0;
+
+      // Testversion: Statt des Text-Fallbacks (der ein manuelles
+      // Ergänzen durch den Tester wäre) nur ein Hinweis, mit einem
+      // anderen Video erneut zu versuchen. Zählt nicht als Import,
+      // weil nichts gespeichert wurde.
+      if (foundNothing && isTesterMode()) {
+        setImportError("Für diesen Link konnte kein Rezept gefunden werden. Bitte mit einem anderen Video versuchen.");
+        return;
+      }
+
       setPrefill(newPrefill);
       if (result.warning) setImportWarning(result.warning);
       if (hasEnglishUnits(newPrefill.ingredients) && !isEnglishUnitsNoticeHidden()) {
         setShowEnglishUnitsNotice(true);
       }
-
-      // Praktisch nichts gefunden (Titel leer, keine Zutaten, keine
-      // Schritte) -> das Rezept steht vermutlich nicht in der Caption,
-      // sondern nur im Video oder in den Kommentaren. Fallback anbieten,
-      // statt den Nutzer mit einem komplett leeren Formular allein zu lassen.
-      const foundNothing =
-        !newPrefill.title && newPrefill.ingredients.length === 0 && newPrefill.steps.length === 0;
       setMode(foundNothing ? "textFallback" : "review");
     } catch (err) {
       console.error(err);
@@ -150,6 +175,9 @@ export default function AddRecipe() {
       sourceUrl: prefill?.sourceUrl || null,
       platform: prefill?.platform || null,
     });
+    if (isTesterMode() && prefill?.sourceUrl) {
+      recordSuccessfulImport();
+    }
     navigate(`/recipe/${created.id}`);
   }
 
@@ -169,23 +197,38 @@ export default function AddRecipe() {
 
       {mode === "choose" && (
         <div className="mt-6 space-y-3 px-4">
-          <button
-            type="button"
-            onClick={() => setMode("linkInput")}
-            className="flex w-full items-center gap-3 rounded-[var(--radius-card)] border border-sand-line bg-cream-card p-4 text-left"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive/10 text-olive">
-              <Link2 size={20} />
-            </span>
-            <span>
-              <span className="block font-display text-base font-medium text-ink">
-                Von Link importieren
+          {isTesterMode() && (
+            <p className="text-center text-xs text-ink-soft">
+              Testversion – noch {getImportsRemaining()} von {TESTER_IMPORT_LIMIT} Test-Importen übrig
+            </p>
+          )}
+
+          {isTesterMode() && hasReachedImportLimit() ? (
+            <div className="rounded-[var(--radius-card)] border border-sand-line bg-cream-card p-4 text-center text-sm text-ink-soft">
+              Du hast dein Test-Limit von {TESTER_IMPORT_LIMIT} importierten Rezepten erreicht.
+              Danke fürs Testen! 🎉
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setMode("linkInput")}
+              className="flex w-full items-center gap-3 rounded-[var(--radius-card)] border border-sand-line bg-cream-card p-4 text-left"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive/10 text-olive">
+                <Link2 size={20} />
               </span>
-              <span className="block text-xs text-ink-soft">
-                TikTok, Instagram oder Pinterest – Titel/Bild/Zutaten werden automatisch befüllt
+              <span>
+                <span className="block font-display text-base font-medium text-ink">
+                  Von Link importieren
+                </span>
+                <span className="block text-xs text-ink-soft">
+                  {isTesterMode()
+                    ? "TikTok oder Pinterest – Titel/Bild/Zutaten werden automatisch befüllt"
+                    : "TikTok, Instagram oder Pinterest – Titel/Bild/Zutaten werden automatisch befüllt"}
+                </span>
               </span>
-            </span>
-          </button>
+            </button>
+          )}
 
           <button
             type="button"
