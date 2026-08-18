@@ -143,17 +143,17 @@ export default function RecipeDetail() {
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">{recipe.description}</p>
         )}
 
-        <div className="mt-4 flex items-center gap-4 text-sm text-ink-soft">
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-soft">
           {recipe.cookTime && (
-            <span className="flex items-center gap-1.5">
+            <span className="flex shrink-0 items-center gap-1.5">
               <Clock size={16} /> {recipe.cookTime}
             </span>
           )}
-          <span className="flex items-center gap-1.5">
+          <span className="flex shrink-0 items-center gap-1.5">
             <Users size={16} /> {recipe.servings} Portionen (Original)
           </span>
           {recipe.caloriesPerServing && (
-            <span className="flex items-center gap-1.5" title="Grobe KI-Schätzung, keine exakte Nährwertangabe">
+            <span className="flex shrink-0 items-center gap-1.5" title="Grobe KI-Schätzung, keine exakte Nährwertangabe">
               <Flame size={16} /> ~{recipe.caloriesPerServing} kcal/Portion (geschätzt)
             </span>
           )}
@@ -162,7 +162,7 @@ export default function RecipeDetail() {
               href={recipe.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-olive"
+              className="flex shrink-0 items-center gap-1.5 text-olive"
             >
               <ExternalLink size={16} /> Original ({recipe.platform || "Link"})
             </a>

@@ -36,6 +36,7 @@ body {
   color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* Horizontale Slider: Scrollbar dezent ausblenden, Scroll bleibt nutzbar */
