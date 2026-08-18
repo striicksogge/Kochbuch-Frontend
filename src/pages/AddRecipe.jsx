@@ -3,8 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Link2, PenLine, Loader2, CopyCheck, ClipboardPaste } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
 import { importFromLink, extractFromText } from "../data/extractApi";
+import { hasEnglishUnits } from "../data/ingredients";
 import RecipeFormFields from "../components/RecipeFormFields";
 import ImageDisclaimerBanner from "../components/ImageDisclaimerBanner";
+import EnglishUnitsNotice, { isEnglishUnitsNoticeHidden } from "../components/EnglishUnitsNotice";
 
 /**
  * Rezept anlegen – zwei Wege:
@@ -39,6 +41,7 @@ export default function AddRecipe() {
   const [importWarning, setImportWarning] = useState("");
   const [prefill, setPrefill] = useState(null); // Ergebnis des Imports, für das Formular
   const [duplicateRecipe, setDuplicateRecipe] = useState(null);
+  const [showEnglishUnitsNotice, setShowEnglishUnitsNotice] = useState(false);
 
   const [manualText, setManualText] = useState("");
   const [isExtractingText, setIsExtractingText] = useState(false);
@@ -90,6 +93,9 @@ export default function AddRecipe() {
       };
       setPrefill(newPrefill);
       if (result.warning) setImportWarning(result.warning);
+      if (hasEnglishUnits(newPrefill.ingredients) && !isEnglishUnitsNoticeHidden()) {
+        setShowEnglishUnitsNotice(true);
+      }
 
       // Praktisch nichts gefunden (Titel leer, keine Zutaten, keine
       // Schritte) -> das Rezept steht vermutlich nicht in der Caption,
@@ -126,6 +132,9 @@ export default function AddRecipe() {
         servings: result.servings || prev?.servings || "",
         caloriesPerServing: result.caloriesPerServing || prev?.caloriesPerServing || "",
       }));
+      if (hasEnglishUnits(result.ingredients) && !isEnglishUnitsNoticeHidden()) {
+        setShowEnglishUnitsNotice(true);
+      }
       setMode("review");
     } catch (err) {
       console.error(err);
@@ -304,6 +313,10 @@ export default function AddRecipe() {
             Ohne das weiter, selbst ausfüllen
           </button>
         </div>
+      )}
+
+      {showEnglishUnitsNotice && (
+        <EnglishUnitsNotice onClose={() => setShowEnglishUnitsNotice(false)} />
       )}
 
       {mode === "review" && (

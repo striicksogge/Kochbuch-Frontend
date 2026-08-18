@@ -59,3 +59,19 @@ export function scaleAmount(amountText, factor) {
   if (num === null) return amountText;
   return formatAmount(num * factor);
 }
+
+// Claude lässt Mengen/Einheiten beim Extrahieren bewusst unverändert (nur
+// der Cup-Wert wird separat in eine metrische Größe umgerechnet, siehe
+// Backend). Englische Einheiten wie tbsp/tsp/oz/lb bleiben deshalb nach
+// dem Import unangetastet stehen – das ist das Signal dafür, dass wir dem
+// Nutzer den "Mengen bitte prüfen"-Hinweis zeigen sollten.
+const ENGLISH_UNIT_PATTERN =
+  /^(tbsp|tbs|tablespoons?|tsp|teaspoons?|cups?|fl\.?\s?oz|oz|ounces?|lbs?|pounds?|pt|pints?|qt|quarts?|gal|gallons?)$/i;
+
+/** Prüft, ob mindestens eine Zutat noch eine unübersetzte englische Einheit hat. */
+export function hasEnglishUnits(ingredients) {
+  return (ingredients || []).some((ing) => {
+    const unit = typeof ing === "string" ? "" : ing.unit || "";
+    return ENGLISH_UNIT_PATTERN.test(unit.trim());
+  });
+}
