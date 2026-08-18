@@ -29,7 +29,7 @@ export default function SplashScreen({ onFinish }) {
     >
       <div className="relative flex items-center justify-center">
         <span className="splash-pulse absolute h-40 w-40 rounded-full bg-olive/20" />
-        <img src="./logo.png" alt="RECIPI" className="splash-logo relative w-48" />
+        <img src="./logo.png" alt="REZIPI" className="splash-logo relative w-48" />
       </div>
     </div>
   );
