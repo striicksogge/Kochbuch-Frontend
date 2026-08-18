@@ -26,7 +26,7 @@ export default function SplashScreen({ onFinish }) {
         fadingOut ? "opacity-0" : "opacity-100"
       }`}
     >
-      <img src="./logo.png" alt="Recipi" className="w-48" />
+      <img src="./logo.png" alt="RECIPI" className="w-48" />
     </div>
   );
 }

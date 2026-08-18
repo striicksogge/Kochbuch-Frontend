@@ -16,10 +16,18 @@ export function isTesterMode() {
   return localStorage.getItem(MODE_KEY) === "true";
 }
 
-/** Liest ?tester=1 aus den URL-Suchparametern und aktiviert den Testmodus dauerhaft. */
+/**
+ * Liest ?tester=1 aus den URL-Suchparametern und aktiviert den Testmodus dauerhaft.
+ * ?tester=0 deaktiviert ihn wieder (z. B. für den Betreiber selbst, falls der eigene
+ * Link versehentlich mit ?tester=1 aufgerufen wurde) - löscht nur das Testmodus-Flag
+ * und den Importzähler, keine Rezepte.
+ */
 export function activateTesterModeFromParams(searchParams) {
   if (searchParams.get("tester") === "1") {
     localStorage.setItem(MODE_KEY, "true");
+  } else if (searchParams.get("tester") === "0") {
+    localStorage.removeItem(MODE_KEY);
+    localStorage.removeItem(COUNT_KEY);
   }
 }
 
