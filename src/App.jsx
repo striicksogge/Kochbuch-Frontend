@@ -14,6 +14,7 @@ import Favorites from "./pages/Favorites";
 import ShoppingListPage from "./pages/ShoppingListPage";
 import MealPlanPage from "./pages/MealPlanPage";
 import AllRecipesPage from "./pages/AllRecipesPage";
+import FeedbackPage from "./pages/FeedbackPage";
 import BottomNav from "./components/BottomNav";
 
 /**
@@ -60,6 +61,7 @@ export default function App() {
             <Route path="/shopping-list" element={<ShoppingListPage />} />
             <Route path="/meal-plan" element={<MealPlanPage />} />
             <Route path="/all-recipes" element={<AllRecipesPage />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
           </Routes>
           <BottomNav />
         </div>

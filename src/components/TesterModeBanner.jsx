@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { FlaskConical, ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
+import { FlaskConical, ChevronDown, MessageCircle } from "lucide-react";
 import { getImportsRemaining, TESTER_IMPORT_LIMIT } from "../data/testerMode";
 
 /** Erkennt, ob die Seite gerade als installierte App läuft (Startbildschirm-Icon),
@@ -31,6 +32,13 @@ export default function TesterModeBanner() {
           Testversion – noch {getImportsRemaining()} von {TESTER_IMPORT_LIMIT} Test-Importen übrig
         </span>
       </div>
+
+      <Link
+        to="/feedback"
+        className="mt-2 flex items-center gap-1.5 text-xs font-medium text-olive-deep underline"
+      >
+        <MessageCircle size={13} /> Feedback geben / Fehler melden
+      </Link>
 
       {!installed && (
         <>
