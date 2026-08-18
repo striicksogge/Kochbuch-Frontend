@@ -1,22 +1,53 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download, Upload } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
 import RecipeCard from "../components/RecipeCard";
+import { exportData, importDataFromFile } from "../data/backup";
 
 /**
  * Zeigt wirklich ALLE Rezepte im Grid (im Gegensatz zu Home, wo nur
  * Ausschnitte/Slider zu sehen sind). Erreichbar über "Alle" beim
  * "Zuletzt hinzugefügt"-Bereich auf der Startseite.
+ * Enthält außerdem den Export/Import-Zugang fürs Backup, seit die
+ * frühere Kategorien-Seite entfernt wurde.
  */
 export default function AllRecipesPage() {
   const { recipes } = useRecipes();
   const [sortBy, setSortBy] = useState("newest");
+  const fileInputRef = useRef(null);
 
   const sorted = [...recipes].sort((a, b) => {
     if (sortBy === "title") return a.title.localeCompare(b.title, "de");
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
+
+  function handleExport() {
+    exportData();
+  }
+
+  function handleImportClick() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleImportChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // erlaubt erneute Auswahl derselben Datei
+    if (!file) return;
+
+    const confirmed = window.confirm(
+      "Backup einspielen? Das überschreibt alle aktuell gespeicherten Rezepte, den Essensplan und die Einkaufsliste."
+    );
+    if (!confirmed) return;
+
+    try {
+      const count = await importDataFromFile(file);
+      window.alert(`${count} Rezept${count !== 1 ? "e" : ""} importiert. Die Seite wird jetzt neu geladen.`);
+      window.location.reload();
+    } catch (err) {
+      window.alert(err.message);
+    }
+  }
 
   return (
     <div className="px-4 pb-24 pt-4">
@@ -54,6 +85,37 @@ export default function AllRecipesPage() {
           ))}
         </div>
       )}
+
+      <section className="mt-10 border-t border-sand-line pt-5">
+        <h2 className="font-display text-base font-medium text-ink">Daten-Backup</h2>
+        <p className="mt-1 text-xs text-ink-soft">
+          Sichere alle Rezepte, den Essensplan und die Einkaufsliste als Datei, oder spiele
+          ein vorheriges Backup wieder ein.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleExport}
+            className="flex items-center gap-1.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream-card px-4 py-2 text-sm font-medium text-ink"
+          >
+            <Download size={15} /> Backup exportieren
+          </button>
+          <button
+            type="button"
+            onClick={handleImportClick}
+            className="flex items-center gap-1.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream-card px-4 py-2 text-sm font-medium text-ink"
+          >
+            <Upload size={15} /> Backup importieren
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={handleImportChange}
+          />
+        </div>
+      </section>
     </div>
   );
 }
