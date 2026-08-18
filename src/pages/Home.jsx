@@ -7,6 +7,8 @@ import AddRecipeButton from "../components/AddRecipeButton";
 import { useRecipes } from "../context/RecipesContext";
 import { ChefHat, Dices, CalendarCheck, History } from "lucide-react";
 import { WEEKDAYS, getMealPlan } from "../data/mealPlanStorage";
+import { isTesterMode } from "../data/testerMode";
+import TesterModeBanner from "../components/TesterModeBanner";
 
 // JS Date.getDay(): 0=Sonntag, 1=Montag, ... 6=Samstag -> auf unsere Wochentag-Keys mappen
 const JS_DAY_TO_KEY = ["so", "mo", "di", "mi", "do", "fr", "sa"];
@@ -48,6 +50,11 @@ export default function Home() {
   if (recipes.length === 0) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-8 pb-24 text-center">
+        {isTesterMode() && (
+          <div className="mb-6 w-full max-w-sm">
+            <TesterModeBanner />
+          </div>
+        )}
         <ChefHat size={40} strokeWidth={1.5} className="mb-4 text-olive" />
         <h1 className="font-display text-xl font-semibold text-ink">
           Dein Kochbuch ist noch leer
@@ -79,6 +86,7 @@ export default function Home() {
 
   return (
     <div className="pb-24">
+      {isTesterMode() && <TesterModeBanner />}
       <SearchBar />
 
       <div className="px-4 pt-3">
