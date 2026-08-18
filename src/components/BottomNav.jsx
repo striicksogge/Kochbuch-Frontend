@@ -3,10 +3,10 @@ import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
   { id: "home", label: "Start", icon: House, to: "/" },
-  { id: "all", label: "Alle", icon: LayoutGrid, to: "/all-recipes" },
-  { id: "plan", label: "Plan", icon: CalendarDays, to: "/meal-plan" },
-  { id: "list", label: "Liste", icon: ShoppingCart, to: "/shopping-list" },
-  { id: "favorites", label: "Favoriten", icon: Heart, to: "/favorites" },
+  { id: "all", label: "Alle", icon: LayoutGrid, to: "/all-recipes", tourId: "nav-all" },
+  { id: "plan", label: "Plan", icon: CalendarDays, to: "/meal-plan", tourId: "nav-plan" },
+  { id: "list", label: "Liste", icon: ShoppingCart, to: "/shopping-list", tourId: "nav-list" },
+  { id: "favorites", label: "Favoriten", icon: Heart, to: "/favorites", tourId: "nav-favorites" },
 ];
 
 /**
@@ -22,8 +22,8 @@ export default function BottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-around">
-        {NAV_ITEMS.map(({ id, label, icon: Icon, to }) => (
-          <li key={id} className="flex-1">
+        {NAV_ITEMS.map(({ id, label, icon: Icon, to, tourId }) => (
+          <li key={id} className="flex-1" data-tour={tourId}>
             <NavLink
               to={to}
               end={to === "/"}

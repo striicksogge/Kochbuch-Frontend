@@ -64,6 +64,7 @@ export default function Home() {
         </p>
         <Link
           to="/add"
+          data-tour="add"
           className="mt-5 rounded-[var(--radius-chip)] bg-olive px-6 py-3 text-sm font-semibold text-cream"
         >
           Erstes Rezept hinzufügen

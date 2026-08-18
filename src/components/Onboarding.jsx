@@ -32,12 +32,13 @@ const FEATURES = [
 /**
  * Einmaliges Onboarding, nur beim allerersten Start (nach dem
  * Splash-Screen, siehe SplashScreen.jsx). Zeigt kurz die Kernfunktionen,
- * danach nie wieder.
+ * danach nie wieder. Der Nutzer entscheidet sich zwischen einer
+ * geführten App-Tour (siehe AppTour.jsx) und eigenständigem Erkunden.
  */
 export default function Onboarding({ onFinish }) {
-  function handleStart() {
+  function handleStart(withTour) {
     localStorage.setItem(STORAGE_KEY, "true");
-    onFinish();
+    onFinish(withTour);
   }
 
   return (
@@ -65,13 +66,22 @@ export default function Onboarding({ onFinish }) {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleStart}
-        className="mt-8 w-full rounded-[var(--radius-chip)] bg-olive py-3 text-sm font-semibold text-cream"
-      >
-        Los geht's
-      </button>
+      <div className="mt-8 space-y-3">
+        <button
+          type="button"
+          onClick={() => handleStart(true)}
+          className="w-full rounded-[var(--radius-chip)] bg-olive py-3 text-sm font-semibold text-cream"
+        >
+          App-Tour starten
+        </button>
+        <button
+          type="button"
+          onClick={() => handleStart(false)}
+          className="w-full rounded-[var(--radius-chip)] border border-sand-line py-3 text-sm font-semibold text-ink"
+        >
+          Selbst erkunden
+        </button>
+      </div>
     </div>
   );
 }

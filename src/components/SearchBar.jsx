@@ -10,6 +10,7 @@ export default function SearchBar() {
     <div className="px-4 pt-4">
       <Link
         to="/search"
+        data-tour="search"
         className="flex items-center gap-2.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream-card px-4 py-3 shadow-[0_2px_8px_-4px_rgba(43,42,34,0.15)]"
       >
         <Search size={18} strokeWidth={2} className="shrink-0 text-ink-soft" />

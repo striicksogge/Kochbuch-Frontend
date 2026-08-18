@@ -5,6 +5,7 @@ import { ToastProvider } from "./context/ToastContext";
 import { activateTesterModeFromParams } from "./data/testerMode";
 import SplashScreen from "./components/SplashScreen";
 import Onboarding, { hasSeenOnboarding } from "./components/Onboarding";
+import AppTour from "./components/AppTour";
 import Home from "./pages/Home";
 import RecipeDetail from "./pages/RecipeDetail";
 import RecipeForm from "./pages/RecipeForm";
@@ -33,6 +34,7 @@ import BottomNav from "./components/BottomNav";
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
+  const [tourActive, setTourActive] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -44,7 +46,14 @@ export default function App() {
   }
 
   if (showOnboarding) {
-    return <Onboarding onFinish={() => setShowOnboarding(false)} />;
+    return (
+      <Onboarding
+        onFinish={(withTour) => {
+          setShowOnboarding(false);
+          setTourActive(withTour);
+        }}
+      />
+    );
   }
 
   return (
@@ -65,6 +74,7 @@ export default function App() {
           </Routes>
           <BottomNav />
         </div>
+        {tourActive && <AppTour onFinish={() => setTourActive(false)} />}
       </RecipesProvider>
     </ToastProvider>
   );
