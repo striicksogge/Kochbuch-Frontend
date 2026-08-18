@@ -1,6 +1,6 @@
 {
-  "name": "Mein Kochbuch",
-  "short_name": "Kochbuch",
+  "name": "Recipi",
+  "short_name": "Recipi",
   "description": "Eigene Rezepte speichern, organisieren und kochen",
   "start_url": "./",
   "scope": "./",
