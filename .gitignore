@@ -1,0 +1,25 @@
+# Abhängigkeiten
+node_modules/
+
+# Build-Ausgabe
+dist/
+dist-ssr/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Betriebssystem
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Lokale Umgebungsvariablen (siehe VITE_BACKEND_URL in project-context.md)
+.env
+.env.local
+
+# Vorschau-/Dev-Server-Konfiguration dieser Arbeitsumgebung
+.claude/
