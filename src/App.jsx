@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { RecipesProvider } from "./context/RecipesContext";
 import { ToastProvider } from "./context/ToastContext";
+import SplashScreen from "./components/SplashScreen";
+import Onboarding, { hasSeenOnboarding } from "./components/Onboarding";
 import Home from "./pages/Home";
 import RecipeDetail from "./pages/RecipeDetail";
 import RecipeForm from "./pages/RecipeForm";
@@ -16,8 +19,23 @@ import BottomNav from "./components/BottomNav";
  * App-Grundgerüst mit Routing.
  * ToastProvider ganz außen, damit Hinweise (z. B. "Rückgängig" nach
  * dem Löschen) auch nach einer Navigation sichtbar bleiben.
+ *
+ * Vor der eigentlichen App zwei Zwischenschritte: Splash-Screen (bei
+ * JEDEM Start kurz sichtbar) und Onboarding (nur beim allerersten
+ * Start, danach dauerhaft übersprungen).
  */
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
+
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
+  if (showOnboarding) {
+    return <Onboarding onFinish={() => setShowOnboarding(false)} />;
+  }
+
   return (
     <ToastProvider>
       <RecipesProvider>
