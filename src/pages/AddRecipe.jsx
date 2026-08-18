@@ -207,6 +207,10 @@ export default function AddRecipe() {
             <div className="rounded-[var(--radius-card)] border border-sand-line bg-cream-card p-4 text-center text-sm text-ink-soft">
               Du hast dein Test-Limit von {TESTER_IMPORT_LIMIT} importierten Rezepten erreicht.
               Danke fürs Testen! 🎉
+              <br />
+              Du kannst die App weiter ganz normal nutzen (Rezepte ansehen, Essensplan,
+              Einkaufsliste, Suche, manuell Rezepte anlegen) – nur der Link-Import ist jetzt
+              gesperrt.
             </div>
           ) : (
             <button

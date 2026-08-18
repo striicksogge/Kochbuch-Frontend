@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FlaskConical, ChevronDown, MessageCircle } from "lucide-react";
-import { getImportsRemaining, TESTER_IMPORT_LIMIT } from "../data/testerMode";
+import { getImportsRemaining, hasReachedImportLimit, TESTER_IMPORT_LIMIT } from "../data/testerMode";
 
 /** Erkennt, ob die Seite gerade als installierte App läuft (Startbildschirm-Icon),
  * statt als normaler Browser-Tab - funktioniert für Android/Chrome und iOS/Safari. */
@@ -28,9 +28,15 @@ export default function TesterModeBanner() {
     <div className="mx-4 mt-3 rounded-[var(--radius-card)] border border-honey/40 bg-honey/10 p-3">
       <div className="flex items-center gap-2 text-sm text-ink">
         <FlaskConical size={16} className="shrink-0 text-honey" />
-        <span>
-          Testversion – noch {getImportsRemaining()} von {TESTER_IMPORT_LIMIT} Test-Importen übrig
-        </span>
+        {hasReachedImportLimit() ? (
+          <span>
+            Test-Limit erreicht – Import gesperrt, die App bleibt aber ganz normal nutzbar.
+          </span>
+        ) : (
+          <span>
+            Testversion – noch {getImportsRemaining()} von {TESTER_IMPORT_LIMIT} Test-Importen übrig
+          </span>
+        )}
       </div>
 
       <Link

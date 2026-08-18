@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 
-const SPLASH_DURATION_MS = 1100;
-const FADE_DURATION_MS = 300;
+const SPLASH_DURATION_MS = 1600;
+const FADE_DURATION_MS = 350;
 
 /**
- * Kurzer Marken-Screen bei JEDEM App-Start (nicht nur beim ersten Mal,
- * dafür gibt es Onboarding.jsx). Blendet sich nach kurzer Zeit von
- * selbst wieder aus.
+ * Marken-Screen bei JEDEM App-Start (nicht nur beim ersten Mal, dafür gibt
+ * es Onboarding.jsx). Logo skaliert sanft hoch + blendet ein (siehe
+ * .splash-logo/.splash-pulse in index.css), danach blendet der ganze
+ * Screen wieder aus.
  */
 export default function SplashScreen({ onFinish }) {
   const [fadingOut, setFadingOut] = useState(false);
@@ -26,7 +27,10 @@ export default function SplashScreen({ onFinish }) {
         fadingOut ? "opacity-0" : "opacity-100"
       }`}
     >
-      <img src="./logo.png" alt="RECIPI" className="w-48" />
+      <div className="relative flex items-center justify-center">
+        <span className="splash-pulse absolute h-40 w-40 rounded-full bg-olive/20" />
+        <img src="./logo.png" alt="RECIPI" className="splash-logo relative w-48" />
+      </div>
     </div>
   );
 }
