@@ -5,6 +5,8 @@ import { sendFeedback } from "../data/feedbackApi";
 import { getCustomCategories, addCustomCategory, removeCustomCategory } from "../data/customCategories";
 import { getTheme, setTheme } from "../data/theme";
 import { isThumbnailDownloadEnabled, setThumbnailDownloadEnabled } from "../data/imageDownloadSetting";
+import { useAuth } from "../context/AuthContext";
+import { useRecipes } from "../context/RecipesContext";
 import ImportModeModal from "./ImportModeModal";
 
 /**
@@ -103,8 +105,11 @@ function FloatingPanel({ title, onClose, children }) {
 }
 
 function ImportExportPanel({ onClose }) {
+  const { user } = useAuth();
+  const { recipes } = useRecipes();
   const fileInputRef = useRef(null);
   const [pendingImportFile, setPendingImportFile] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   function handleImportChange(e) {
     const file = e.target.files?.[0];
@@ -116,13 +121,15 @@ function ImportExportPanel({ onClose }) {
     const file = pendingImportFile;
     setPendingImportFile(null);
     if (!file) return;
+    setIsImporting(true);
     try {
-      const count = await importDataFromFile(file, mode);
+      const count = await importDataFromFile(user.uid, file, recipes, mode);
       const verb = mode === "merge" ? "hinzugefügt" : "importiert";
-      window.alert(`${count} Rezept${count !== 1 ? "e" : ""} ${verb}. Die Seite wird jetzt neu geladen.`);
-      window.location.reload();
+      window.alert(`${count} Rezept${count !== 1 ? "e" : ""} ${verb}.`);
     } catch (err) {
       window.alert(err.message);
+    } finally {
+      setIsImporting(false);
     }
   }
 
@@ -135,7 +142,7 @@ function ImportExportPanel({ onClose }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => exportData()}
+          onClick={() => exportData(recipes)}
           className="flex items-center gap-1.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream px-4 py-2 text-sm font-medium text-ink"
         >
           Backup exportieren
@@ -143,8 +150,10 @@ function ImportExportPanel({ onClose }) {
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream px-4 py-2 text-sm font-medium text-ink"
+          disabled={isImporting}
+          className="flex items-center gap-1.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream px-4 py-2 text-sm font-medium text-ink disabled:opacity-60"
         >
+          {isImporting && <Loader2 size={14} className="animate-spin" />}
           Backup importieren
         </button>
         <input

@@ -93,7 +93,6 @@ export default function AddRecipe() {
   const [bulkText, setBulkText] = useState("");
   const [bulkResults, setBulkResults] = useState(restoredBulkResults); // Array während/nach Mehrfach-Import
   const [isBulkRunning, setIsBulkRunning] = useState(false);
-  const [bulkAbortedReason, setBulkAbortedReason] = useState("");
   const [saveError, setSaveError] = useState("");
 
   function normalizeUrl(u) {
@@ -216,7 +215,6 @@ export default function AddRecipe() {
     if (urls.length === 0) return;
 
     setIsBulkRunning(true);
-    setBulkAbortedReason("");
     const results = [];
     setBulkResults(results);
 
@@ -272,7 +270,7 @@ export default function AddRecipe() {
           updateResults();
           continue;
         }
-        const created = addRecipe({
+        const created = await addRecipe({
           title: result.title || "",
           image: result.image || "",
           ingredients: result.ingredients || [],
@@ -287,18 +285,9 @@ export default function AddRecipe() {
         entry = { url: targetUrl, status: "success", recipeId: created.id, title: created.title };
       } catch (err) {
         console.error(err);
-        // "Speicher voll" betrifft nicht nur diesen einen Link, sondern JEDEN
-        // weiteren Speicherversuch auch - ohne Abbruch würde die Schleife für
-        // jede restliche URL erneut (sinnlos) importieren und wieder scheitern.
-        const isStorageFull = err.message?.startsWith("Speicher ist voll");
-        entry = { url: targetUrl, status: "failed", reason: isStorageFull ? "Speicher voll" : "Import fehlgeschlagen" };
+        entry = { url: targetUrl, status: "failed", reason: "Import fehlgeschlagen" };
         results.push(entry);
         updateResults();
-        if (isStorageFull) {
-          setBulkAbortedReason(err.message);
-          setIsBulkRunning(false);
-          return;
-        }
         continue;
       }
       results.push(entry);
@@ -338,11 +327,11 @@ export default function AddRecipe() {
     }
   }
 
-  function saveRecipe(data) {
+  async function saveRecipe(data) {
     setSaveError("");
     let created;
     try {
-      created = addRecipe({
+      created = await addRecipe({
         ...data,
         sourceUrl: prefill?.sourceUrl || null,
         platform: prefill?.platform || null,
@@ -359,7 +348,7 @@ export default function AddRecipe() {
   }
 
   function handleSubmit(data) {
-    const titleMatch = findRecipeByTitle(data.title);
+    const titleMatch = findRecipeByTitle(recipes, data.title);
     if (titleMatch) {
       setPendingSave({ data, existingRecipe: titleMatch });
       return;
@@ -541,11 +530,6 @@ export default function AddRecipe() {
                   </div>
                 )}
               </div>
-              {bulkAbortedReason && (
-                <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-                  Abgebrochen: {bulkAbortedReason} Die restlichen Links wurden nicht versucht.
-                </p>
-              )}
               {!isBulkRunning && (
                 <button
                   type="button"

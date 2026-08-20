@@ -1,20 +1,18 @@
-// Backup-Funktionen: alle relevanten localStorage-Daten der App
-// (Rezepte, Essensplan, Einkaufslisten-Auswahl) als eine JSON-Datei
-// exportieren bzw. wieder einspielen.
+// Backup-Funktionen: Rezepte (aus dem Firestore-Live-Abo, siehe
+// RecipesContext) + Essensplan/Einkaufsliste (siehe data/userDoc.js) als
+// eine JSON-Datei exportieren bzw. wieder einspielen. Import schreibt
+// jetzt nach Firestore statt localStorage.
 
-const KEYS = {
-  recipes: "kochbuch_v2_recipes",
-  mealPlan: "kochbuch_v2_meal_plan",
-  shoppingList: "kochbuch_v2_shopping_list",
-};
+import { getUserData, patchUserDoc } from "./userDoc";
+import { migrateRecipe, deleteRecipe } from "./recipeStorage";
 
-export function exportData() {
+export function exportData(recipes) {
   const payload = {
     exportedAt: new Date().toISOString(),
     appVersion: "kochbuch-v2",
-    recipes: JSON.parse(localStorage.getItem(KEYS.recipes) || "[]"),
-    mealPlan: JSON.parse(localStorage.getItem(KEYS.mealPlan) || "null"),
-    shoppingList: JSON.parse(localStorage.getItem(KEYS.shoppingList) || "null"),
+    recipes,
+    mealPlan: getUserData().mealPlan || null,
+    shoppingList: getUserData().shoppingList || null,
   };
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -47,7 +45,7 @@ export function exportData() {
  * neue ID, damit keine Duplikate/Überschreibungen durch Zufall
  * entstehen.
  */
-export async function importDataFromFile(file, mode = "overwrite") {
+export async function importDataFromFile(uid, file, existingRecipes, mode = "overwrite") {
   const text = await file.text();
   let parsed;
   try {
@@ -61,20 +59,28 @@ export async function importDataFromFile(file, mode = "overwrite") {
   }
 
   if (mode === "merge") {
-    const existing = JSON.parse(localStorage.getItem(KEYS.recipes) || "[]");
-    const existingIds = new Set(existing.map((r) => r.id));
-    const incoming = parsed.recipes.map((r) =>
-      existingIds.has(r.id)
+    const existingIds = new Set(existingRecipes.map((r) => r.id));
+    let count = 0;
+    for (const r of parsed.recipes) {
+      const recipe = existingIds.has(r.id)
         ? { ...r, id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()) }
-        : r
-    );
-    localStorage.setItem(KEYS.recipes, JSON.stringify([...existing, ...incoming]));
-    return incoming.length;
+        : r;
+      await migrateRecipe(uid, recipe);
+      count++;
+    }
+    return count;
   }
 
-  localStorage.setItem(KEYS.recipes, JSON.stringify(parsed.recipes));
-  if (parsed.mealPlan) localStorage.setItem(KEYS.mealPlan, JSON.stringify(parsed.mealPlan));
-  if (parsed.shoppingList) localStorage.setItem(KEYS.shoppingList, JSON.stringify(parsed.shoppingList));
+  await Promise.all(existingRecipes.map((r) => deleteRecipe(uid, r.id)));
+  for (const r of parsed.recipes) {
+    await migrateRecipe(uid, r);
+  }
+  if (parsed.mealPlan || parsed.shoppingList) {
+    patchUserDoc({
+      ...(parsed.mealPlan ? { mealPlan: parsed.mealPlan } : {}),
+      ...(parsed.shoppingList ? { shoppingList: parsed.shoppingList } : {}),
+    });
+  }
 
   return parsed.recipes.length;
 }

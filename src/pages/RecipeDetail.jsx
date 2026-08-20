@@ -101,8 +101,8 @@ export default function RecipeDetail() {
     );
   }
 
-  function handleDuplicate() {
-    const copy = duplicateRecipe(recipe.id);
+  async function handleDuplicate() {
+    const copy = await duplicateRecipe(recipe.id);
     if (!copy) return;
     navigate(`/recipe/${copy.id}/edit`);
     showToast({ message: `"${recipe.title}" dupliziert` });
@@ -180,19 +180,6 @@ export default function RecipeDetail() {
 
         {recipe.description && (
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">{recipe.description}</p>
-        )}
-
-        {recipe.images?.length > 0 && (
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-            {recipe.images.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt=""
-                className="h-24 w-24 shrink-0 rounded-[var(--radius-card)] object-cover"
-              />
-            ))}
-          </div>
         )}
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-soft">

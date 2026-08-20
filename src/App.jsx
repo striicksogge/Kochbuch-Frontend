@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, useSearchParams, useLocation, useNavigate } from "react-router-dom";
-import { RecipesProvider } from "./context/RecipesContext";
+import { Loader2 } from "lucide-react";
+import { RecipesProvider, useRecipes } from "./context/RecipesContext";
+import { useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { activateTesterModeFromParams } from "./data/testerMode";
 import { hasSeenLatestWhatsNew } from "./data/whatsNew";
 import { getPendingSurveyId } from "./data/surveys";
 import SplashScreen from "./components/SplashScreen";
+import Login from "./components/Login";
 import Onboarding, { hasSeenOnboarding } from "./components/Onboarding";
 import AppTour from "./components/AppTour";
 import WhatsNewModal from "./components/WhatsNewModal";
@@ -55,8 +58,48 @@ function extractSharedUrl() {
   const match = text?.match(SHARE_URL_PATTERN);
   return match ? match[0] : null;
 }
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-cream">
+      <Loader2 size={28} className="animate-spin text-olive" />
+    </div>
+  );
+}
+
 export default function App() {
+  const { user, authLoading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
+  if (authLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  return (
+    <RecipesProvider>
+      <AppContent />
+    </RecipesProvider>
+  );
+}
+
+/**
+ * Eigentlicher Inhalt, erst gerendert wenn ein Nutzer eingeloggt ist -
+ * braucht useRecipes() (RecipesProvider muss also schon ein Vorfahre
+ * sein) um auf `dataReady` zu warten: Migration + erster
+ * Firestore-Schnappschuss müssen durch sein, bevor Seiten wie
+ * MealPlanPage.jsx, die den Essensplan synchron in einem
+ * useState-Initializer lesen, gerendert werden - sonst würden sie mit
+ * veralteten Default-Werten starten und nie wieder aktualisieren.
+ */
+function AppContent() {
+  const { dataReady } = useRecipes();
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
   const [tourActive, setTourActive] = useState(false);
   // Nur für bestehende Nutzer relevant - Erststarter sehen die aktuellen
@@ -92,8 +135,8 @@ export default function App() {
     if (pending) setPendingSurveyId(pending);
   }, [location]);
 
-  if (showSplash) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  if (!dataReady) {
+    return <LoadingScreen />;
   }
 
   if (showOnboarding) {
@@ -109,29 +152,27 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <RecipesProvider>
-        <div className="min-h-screen bg-cream font-body text-ink">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/recipe/:id" element={<RecipeDetail />} />
-            <Route path="/add" element={<AddRecipe />} />
-            <Route path="/recipe/:id/edit" element={<RecipeForm />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/favorites" element={<Favorites />} />
-            <Route path="/want-to-cook" element={<WantToCook />} />
-            <Route path="/shopping-list" element={<PlanAndListPage />} />
-            <Route path="/meal-plan" element={<PlanAndListPage />} />
-            <Route path="/all-recipes" element={<AllRecipesPage />} />
-            <Route path="/feedback" element={<FeedbackPage />} />
-          </Routes>
-          <BottomNav />
-        </div>
-        {tourActive && <AppTour onFinish={() => setTourActive(false)} />}
-        {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
-        {!showWhatsNew && pendingSurveyId && (
-          <SurveyModal surveyId={pendingSurveyId} onClose={() => setPendingSurveyId(null)} />
-        )}
-      </RecipesProvider>
+      <div className="min-h-screen bg-cream font-body text-ink">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/recipe/:id" element={<RecipeDetail />} />
+          <Route path="/add" element={<AddRecipe />} />
+          <Route path="/recipe/:id/edit" element={<RecipeForm />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/favorites" element={<Favorites />} />
+          <Route path="/want-to-cook" element={<WantToCook />} />
+          <Route path="/shopping-list" element={<PlanAndListPage />} />
+          <Route path="/meal-plan" element={<PlanAndListPage />} />
+          <Route path="/all-recipes" element={<AllRecipesPage />} />
+          <Route path="/feedback" element={<FeedbackPage />} />
+        </Routes>
+        <BottomNav />
+      </div>
+      {tourActive && <AppTour onFinish={() => setTourActive(false)} />}
+      {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
+      {!showWhatsNew && pendingSurveyId && (
+        <SurveyModal surveyId={pendingSurveyId} onClose={() => setPendingSurveyId(null)} />
+      )}
     </ToastProvider>
   );
 }

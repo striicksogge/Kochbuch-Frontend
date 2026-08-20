@@ -1,66 +1,128 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { useAuth } from "./AuthContext";
 import * as storage from "../data/recipeStorage";
+import { initUserDoc, resetUserDoc } from "../data/userDoc";
+import { migrateLocalDataIfNeeded } from "../data/migration";
 
 const RecipesContext = createContext(null);
 
 /**
- * Hält den Rezept-State zentral, damit z. B. ein Favoriten-Klick auf
- * einer Karte sofort auf allen Seiten sichtbar ist (Startseite,
- * Kategorie-Seiten, Suche), statt dass jede Seite ihre eigene,
- * unabhängige Kopie des States hätte.
+ * Hält den Rezept-State zentral (Firestore-Live-Abo, siehe
+ * recipeStorage.js subscribeToRecipes) - eine Änderung ist dadurch sofort
+ * überall in der App sichtbar, auch von einem anderen eingeloggten Gerät.
+ *
+ * `dataReady` wird erst true, nachdem beim Login (a) eine evtl. nötige
+ * Migration alter localStorage-Daten abgeschlossen, (b) die kleinen
+ * Nutzdaten (Essensplan/Einkaufsliste/eigene Kategorien, siehe
+ * data/userDoc.js) geladen UND (c) der erste Rezepte-Schnappschuss
+ * angekommen ist - App.jsx zeigt bis dahin einen Ladezustand, damit
+ * Seiten, die z. B. getMealPlan() synchron in einem useState-Initializer
+ * aufrufen (MealPlanPage.jsx), nicht mit veralteten Default-Werten starten.
  */
 export function RecipesProvider({ children }) {
-  const [recipes, setRecipes] = useState(() => {
-    storage.cleanupStaleCategories();
-    return storage.getAllRecipes();
-  });
+  const { user } = useAuth();
+  const [recipes, setRecipes] = useState([]);
+  const [dataReady, setDataReady] = useState(false);
+  const cleanupRanRef = useRef(false);
 
-  const addRecipe = useCallback((data) => {
-    const created = storage.createRecipe(data);
-    setRecipes(storage.getAllRecipes());
-    return created;
-  }, []);
+  useEffect(() => {
+    if (!user) {
+      setRecipes([]);
+      setDataReady(false);
+      resetUserDoc();
+      cleanupRanRef.current = false;
+      return;
+    }
 
-  const editRecipe = useCallback((id, data) => {
-    storage.updateRecipe(id, data);
-    setRecipes(storage.getAllRecipes());
-  }, []);
+    let cancelled = false;
+    let unsubscribe = null;
+    setDataReady(false);
 
-  const removeRecipe = useCallback((id) => {
-    storage.deleteRecipe(id);
-    setRecipes(storage.getAllRecipes());
-  }, []);
+    (async () => {
+      try {
+        await migrateLocalDataIfNeeded(user.uid);
+        await initUserDoc(user.uid);
+      } catch (err) {
+        console.error("Laden der Nutzdaten fehlgeschlagen:", err);
+      }
+      if (cancelled) return;
 
-  const toggleFavorite = useCallback((id) => {
-    storage.toggleFavorite(id);
-    setRecipes(storage.getAllRecipes());
-  }, []);
+      unsubscribe = storage.subscribeToRecipes(user.uid, (recs) => {
+        setRecipes(recs);
+        setDataReady(true);
+        if (!cleanupRanRef.current) {
+          cleanupRanRef.current = true;
+          storage.cleanupStaleCategories(user.uid, recs).catch((err) => console.error(err));
+        }
+      });
+    })();
 
-  const restoreRecipe = useCallback((recipe) => {
-    storage.restoreRecipe(recipe);
-    setRecipes(storage.getAllRecipes());
-  }, []);
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [user]);
 
-  const markAsCooked = useCallback((id) => {
-    storage.markAsCooked(id);
-    setRecipes(storage.getAllRecipes());
-  }, []);
+  const addRecipe = useCallback(
+    (data) => storage.createRecipe(user.uid, data),
+    [user]
+  );
 
-  const toggleWantToCook = useCallback((id) => {
-    storage.toggleWantToCook(id);
-    setRecipes(storage.getAllRecipes());
-  }, []);
+  const editRecipe = useCallback(
+    (id, data) => {
+      const current = recipes.find((r) => r.id === id);
+      return storage.updateRecipe(user.uid, id, data, current);
+    },
+    [user, recipes]
+  );
 
-  const duplicateRecipe = useCallback((id) => {
-    const copy = storage.duplicateRecipe(id);
-    setRecipes(storage.getAllRecipes());
-    return copy;
-  }, []);
+  const removeRecipe = useCallback(
+    (id) => storage.deleteRecipe(user.uid, id),
+    [user]
+  );
+
+  const toggleFavorite = useCallback(
+    (id) => {
+      const recipe = recipes.find((r) => r.id === id);
+      return recipe ? storage.toggleFavorite(user.uid, recipe) : Promise.resolve();
+    },
+    [user, recipes]
+  );
+
+  const restoreRecipe = useCallback(
+    (recipe) => storage.restoreRecipe(user.uid, recipe),
+    [user]
+  );
+
+  const markAsCooked = useCallback(
+    (id) => {
+      const recipe = recipes.find((r) => r.id === id);
+      return recipe ? storage.markAsCooked(user.uid, recipe) : Promise.resolve();
+    },
+    [user, recipes]
+  );
+
+  const toggleWantToCook = useCallback(
+    (id) => {
+      const recipe = recipes.find((r) => r.id === id);
+      return recipe ? storage.toggleWantToCook(user.uid, recipe) : Promise.resolve();
+    },
+    [user, recipes]
+  );
+
+  const duplicateRecipe = useCallback(
+    (id) => {
+      const recipe = recipes.find((r) => r.id === id);
+      return recipe ? storage.duplicateRecipe(user.uid, recipe) : Promise.resolve(null);
+    },
+    [user, recipes]
+  );
 
   return (
     <RecipesContext.Provider
       value={{
         recipes,
+        dataReady,
         addRecipe,
         editRecipe,
         removeRecipe,

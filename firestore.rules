@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Einzelner Nutzer, kein öffentliches Registrierungsformular - trotzdem
+// pro-Nutzer-Regeln (statt nur "eingeloggt reicht"), damit das nicht
+// stillschweigend bricht, falls doch mal ein zweiter Account dazukommt.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

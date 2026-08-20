@@ -1,203 +1,197 @@
-// Reine Datenfunktionen, unabhängig von React – leicht testbar und
-// später leicht gegen eine echte Datenbank austauschbar, ohne dass
-// Komponenten sich ändern müssten (nur dieser Datei-Inhalt würde sich ändern).
+// Rezept-Datenschicht: Firestore statt localStorage (users/{uid}/recipes/{id}),
+// damit das bisherige harte localStorage-Limit (5-10 MB je Browser) wegfällt.
+// Bewusste Entscheidung (Nutzer-Vorgabe): kein Firebase Storage (kostenpflichtiger
+// Blaze-Tarif nötig) - nur EIN Titelbild pro Rezept, komprimiert direkt als
+// Data-URL im Firestore-Dokument gespeichert. Firestore-Dokumente haben ein
+// hartes 1-MB-Limit (gilt immer, unabhängig vom Tarif); die bestehende
+// Foto-Kompression (imageUtils.js, max. 1000px Breite, JPEG q=0.8) hält ein
+// einzelnes Titelbild komfortabel darunter. Die frühere "mehrere zusätzliche
+// Fotos"-Funktion wurde deshalb bewusst wieder entfernt.
 
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  onSnapshot,
+} from "firebase/firestore";
+import { db } from "../firebase";
 import { getAllCategoriesIncludingCustom } from "./categories";
 
-const STORAGE_KEY = "kochbuch_v2_recipes";
+function recipesCol(uid) {
+  return collection(db, "users", uid, "recipes");
+}
+
+function recipeDocRef(uid, id) {
+  return doc(db, "users", uid, "recipes", id);
+}
+
+function newId() {
+  return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+}
 
 /**
- * Zentraler Schreibpunkt für alle Rezept-Änderungen. localStorage hat ein
- * Limit (meist 5-10 MB je nach Browser) - bei vielen Rezepten mit Fotos
- * (Titelbild, weitere Fotos, ggf. heruntergeladene Thumbnails) ist das
- * irgendwann erreicht. Ohne dieses try/catch wirft `setItem` einfach eine
- * uncaught Exception, die z. B. beim Speichern im Formular oder mitten im
- * Mehrfach-Import spurlos "nichts passiert" wirken lässt - hier stattdessen
- * ein klarer, verständlicher Fehler zum Anzeigen in der UI.
+ * Live-Abo auf alle Rezepte eines Nutzers - jede Änderung (auch von
+ * einem anderen eingeloggten Gerät) kommt automatisch als neuer Aufruf
+ * von callback rein, kein manuelles Neuladen nötig. Gibt eine
+ * Unsubscribe-Funktion zurück.
  */
-function persist(recipes) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
-  } catch (err) {
-    if (err && (err.name === "QuotaExceededError" || err.code === 22)) {
-      throw new Error(
-        "Speicher ist voll – das Rezept konnte nicht gespeichert werden. Bitte Fotos an bestehenden Rezepten entfernen oder ein Backup exportieren und dann ältere Rezepte löschen, um Platz zu schaffen."
-      );
+export function subscribeToRecipes(uid, callback, onError) {
+  return onSnapshot(
+    recipesCol(uid),
+    (snap) => {
+      const recipes = snap.docs.map((d) => d.data());
+      recipes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      callback(recipes);
+    },
+    (err) => {
+      console.error("Rezepte-Abo fehlgeschlagen:", err);
+      onError?.(err);
     }
-    throw err;
-  }
-}
-
-export function getAllRecipes() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
-
-export function getRecipeById(id) {
-  return getAllRecipes().find((r) => r.id === id) || null;
-}
-
-/**
- * Sucht ein bestehendes Rezept mit demselben Titel (getrimmt,
- * Groß-/Kleinschreibung ignoriert) - für die Dopplungs-Warnung beim
- * Speichern (siehe AddRecipe.jsx/RecipeForm.jsx). excludeId lässt beim
- * Bearbeiten das Rezept selbst außen vor, damit ein unverändert
- * gelassener Titel nicht fälschlich als Dopplung erkannt wird.
- */
-export function findRecipeByTitle(title, excludeId = null) {
-  const normalized = (title || "").trim().toLowerCase();
-  if (!normalized) return null;
-  return (
-    getAllRecipes().find((r) => r.id !== excludeId && r.title.trim().toLowerCase() === normalized) ||
-    null
   );
 }
 
-export function createRecipe(data) {
-  const recipes = getAllRecipes();
+export async function createRecipe(uid, data) {
+  const id = newId();
   const newRecipe = {
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    id,
     createdAt: new Date().toISOString(),
     title: data.title?.trim() || "Unbenanntes Rezept",
     description: data.description?.trim() || "",
     image: data.image?.trim() || "",
-    images: data.images || [], // weitere Fotos, getrennt vom Cover-Bild oben
     servings: data.servings ? Number(data.servings) : 4,
     cookTime: data.cookTime?.trim() || "",
     caloriesPerServing: data.caloriesPerServing ? Number(data.caloriesPerServing) : null,
     notes: data.notes?.trim() || "",
     lastCookedAt: null,
+    cookCount: 0,
     ingredients: data.ingredients || [],
     steps: data.steps || [],
     categories: data.categories || [],
     isFavorite: false,
     wantToCook: false,
-    sourceUrl: data.sourceUrl || null, // gesetzt, wenn per Link importiert
+    sourceUrl: data.sourceUrl || null,
     platform: data.platform || null,
   };
-  recipes.unshift(newRecipe);
-  persist(recipes);
+  await setDoc(recipeDocRef(uid, id), newRecipe);
   return newRecipe;
 }
 
-export function updateRecipe(id, data) {
-  const recipes = getAllRecipes();
-  const index = recipes.findIndex((r) => r.id === id);
-  if (index === -1) return null;
-
-  recipes[index] = {
-    ...recipes[index],
-    title: data.title?.trim() || recipes[index].title,
-    description: data.description?.trim() ?? recipes[index].description,
-    image: data.image?.trim() ?? recipes[index].image,
-    images: data.images ?? recipes[index].images ?? [],
-    servings: data.servings ? Number(data.servings) : recipes[index].servings,
-    cookTime: data.cookTime?.trim() ?? recipes[index].cookTime,
+export async function updateRecipe(uid, id, data, currentRecipe) {
+  const merged = {
+    ...currentRecipe,
+    title: data.title?.trim() || currentRecipe.title,
+    description: data.description?.trim() ?? currentRecipe.description,
+    image: data.image?.trim() ?? currentRecipe.image,
+    servings: data.servings ? Number(data.servings) : currentRecipe.servings,
+    cookTime: data.cookTime?.trim() ?? currentRecipe.cookTime,
     caloriesPerServing:
       data.caloriesPerServing !== undefined
         ? data.caloriesPerServing
           ? Number(data.caloriesPerServing)
           : null
-        : recipes[index].caloriesPerServing,
-    ingredients: data.ingredients ?? recipes[index].ingredients,
-    steps: data.steps ?? recipes[index].steps,
-    categories: data.categories ?? recipes[index].categories,
-    notes: data.notes !== undefined ? data.notes.trim() : recipes[index].notes,
+        : currentRecipe.caloriesPerServing,
+    ingredients: data.ingredients ?? currentRecipe.ingredients,
+    steps: data.steps ?? currentRecipe.steps,
+    categories: data.categories ?? currentRecipe.categories,
+    notes: data.notes !== undefined ? data.notes.trim() : currentRecipe.notes,
   };
-  persist(recipes);
-  return recipes[index];
+  delete merged.images; // altes Feld aus der entfernten Mehrfach-Fotos-Funktion, falls vorhanden
+  await setDoc(recipeDocRef(uid, id), merged);
+  return merged;
 }
 
-export function deleteRecipe(id) {
-  const recipes = getAllRecipes().filter((r) => r.id !== id);
-  persist(recipes);
+export async function deleteRecipe(uid, id) {
+  await deleteDoc(recipeDocRef(uid, id));
 }
 
-/**
- * Fügt ein zuvor gelöschtes Rezept unverändert (inkl. Original-ID)
- * wieder ein - für die Rückgängig-Funktion. Falls die ID zwischenzeitlich
- * erneut vergeben wurde (Edge-Case), wird das nicht überschrieben.
- */
-export function restoreRecipe(recipe) {
-  const recipes = getAllRecipes();
-  if (recipes.some((r) => r.id === recipe.id)) return;
-  recipes.unshift(recipe);
-  persist(recipes);
+/** Für die Rückgängig-Funktion nach dem Löschen - Rezept unverändert (inkl. Original-ID) wieder anlegen. */
+export async function restoreRecipe(uid, recipe) {
+  const existing = await getDoc(recipeDocRef(uid, recipe.id));
+  if (existing.exists()) return; // ID zwischenzeitlich erneut vergeben (Edge-Case) - nicht überschreiben
+  await setDoc(recipeDocRef(uid, recipe.id), recipe);
 }
 
-export function toggleFavorite(id) {
-  const recipes = getAllRecipes();
-  const index = recipes.findIndex((r) => r.id === id);
-  if (index === -1) return;
-  recipes[index] = { ...recipes[index], isFavorite: !recipes[index].isFavorite };
-  persist(recipes);
+export async function toggleFavorite(uid, recipe) {
+  await updateDoc(recipeDocRef(uid, recipe.id), { isFavorite: !recipe.isFavorite });
 }
 
-export function markAsCooked(id) {
-  const recipes = getAllRecipes();
-  const index = recipes.findIndex((r) => r.id === id);
-  if (index === -1) return;
-  recipes[index] = {
-    ...recipes[index],
+export async function markAsCooked(uid, recipe) {
+  await updateDoc(recipeDocRef(uid, recipe.id), {
     lastCookedAt: new Date().toISOString(),
-    cookCount: (recipes[index].cookCount || 0) + 1,
-  };
-  persist(recipes);
+    cookCount: (recipe.cookCount || 0) + 1,
+  });
 }
 
-export function toggleWantToCook(id) {
-  const recipes = getAllRecipes();
-  const index = recipes.findIndex((r) => r.id === id);
-  if (index === -1) return;
-  recipes[index] = { ...recipes[index], wantToCook: !recipes[index].wantToCook };
-  persist(recipes);
+export async function toggleWantToCook(uid, recipe) {
+  await updateDoc(recipeDocRef(uid, recipe.id), { wantToCook: !recipe.wantToCook });
 }
 
-/**
- * Legt eine Kopie eines Rezepts als Basis für eine Variante an - eigene
- * ID, ohne Favorit/Merkliste/Kochstatus/Quelle des Originals, Titel mit
- * „(Kopie)"-Suffix zum sofortigen Umbenennen beim Bearbeiten.
- */
-export function duplicateRecipe(id) {
-  const original = getRecipeById(id);
-  if (!original) return null;
-
-  const recipes = getAllRecipes();
+/** Legt eine Kopie eines Rezepts als Basis für eine Variante an - eigene ID, ohne Favorit/Merkliste/Kochstatus/Quelle des Originals. */
+export async function duplicateRecipe(uid, original) {
+  const id = newId();
   const copy = {
     ...original,
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    id,
     title: `${original.title} (Kopie)`,
     createdAt: new Date().toISOString(),
     lastCookedAt: null,
+    cookCount: 0,
     isFavorite: false,
     wantToCook: false,
     sourceUrl: null,
     platform: null,
   };
-  recipes.unshift(copy);
-  persist(recipes);
+  await setDoc(recipeDocRef(uid, id), copy);
   return copy;
+}
+
+/**
+ * Für die einmalige Migration von localStorage (siehe data/migration.js):
+ * übernimmt ein Rezept unverändert inkl. Original-ID (im Gegensatz zu
+ * createRecipe, das immer eine neue ID vergibt) - damit bestehende
+ * Essensplan-/Einkaufslisten-Referenzen auf die alte ID gültig bleiben.
+ */
+export async function migrateRecipe(uid, recipe) {
+  const migrated = { ...recipe };
+  delete migrated.images; // Mehrfach-Fotos-Feld gibt es nicht mehr, siehe Datei-Kommentar oben
+  await setDoc(recipeDocRef(uid, recipe.id), migrated);
+  return migrated;
+}
+
+/**
+ * Sucht ein bestehendes Rezept mit demselben Titel (getrimmt,
+ * Groß-/Kleinschreibung ignoriert) in einer bereits geladenen
+ * Rezeptliste - für die Dopplungs-Warnung beim Speichern (siehe
+ * AddRecipe.jsx/RecipeForm.jsx). excludeId lässt beim Bearbeiten das
+ * Rezept selbst außen vor. Reine Funktion, kein Firestore-Zugriff -
+ * die Rezeptliste liegt über RecipesContext (Live-Abo) schon im
+ * Speicher, ein zusätzlicher Lesezugriff wäre unnötig.
+ */
+export function findRecipeByTitle(recipes, title, excludeId = null) {
+  const normalized = (title || "").trim().toLowerCase();
+  if (!normalized) return null;
+  return recipes.find((r) => r.id !== excludeId && r.title.trim().toLowerCase() === normalized) || null;
 }
 
 /**
  * Einmalige Datenbereinigung: entfernt Kategorie-Tags aus Bestandsdaten,
  * die inzwischen aus categories.js entfernt wurden (z. B. alte Kategorien
  * wie „Vegan"/„Partyfood") und in der Auswahl-UI ohnehin nicht mehr
- * anklickbar sind. Läuft beim App-Start, schreibt nur, wenn sich
- * tatsächlich etwas ändert.
+ * anklickbar sind. Läuft einmal nach dem ersten Laden der Rezepte,
+ * schreibt nur Dokumente, bei denen sich tatsächlich etwas ändert.
  */
-export function cleanupStaleCategories() {
-  const recipes = getAllRecipes();
-  let changed = false;
+export async function cleanupStaleCategories(uid, recipes) {
   const validNames = getAllCategoriesIncludingCustom();
-  const cleaned = recipes.map((r) => {
-    const validCategories = (r.categories || []).filter((c) => validNames.includes(c));
-    if (validCategories.length !== (r.categories || []).length) {
-      changed = true;
-      return { ...r, categories: validCategories };
-    }
-    return r;
-  });
-  if (changed) persist(cleaned);
-  return changed;
+  const updates = recipes
+    .map((r) => {
+      const validCategories = (r.categories || []).filter((c) => validNames.includes(c));
+      if (validCategories.length === (r.categories || []).length) return null;
+      return { id: r.id, categories: validCategories };
+    })
+    .filter(Boolean);
+  await Promise.all(updates.map((u) => updateDoc(recipeDocRef(uid, u.id), { categories: u.categories })));
+  return updates.length > 0;
 }

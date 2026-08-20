@@ -28,10 +28,10 @@ export default function RecipeForm() {
     );
   }
 
-  function saveRecipe(data) {
+  async function saveRecipe(data) {
     setSaveError("");
     try {
-      editRecipe(id, data);
+      await editRecipe(id, data);
     } catch (err) {
       console.error(err);
       setSaveError(err.message || "Speichern fehlgeschlagen.");
@@ -41,7 +41,7 @@ export default function RecipeForm() {
   }
 
   function handleSubmit(data) {
-    const titleMatch = findRecipeByTitle(data.title, id);
+    const titleMatch = findRecipeByTitle(recipes, data.title, id);
     if (titleMatch) {
       setPendingSave({ data, existingRecipe: titleMatch });
       return;
