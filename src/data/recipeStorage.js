@@ -15,6 +15,22 @@ export function getRecipeById(id) {
   return getAllRecipes().find((r) => r.id === id) || null;
 }
 
+/**
+ * Sucht ein bestehendes Rezept mit demselben Titel (getrimmt,
+ * Groß-/Kleinschreibung ignoriert) - für die Dopplungs-Warnung beim
+ * Speichern (siehe AddRecipe.jsx/RecipeForm.jsx). excludeId lässt beim
+ * Bearbeiten das Rezept selbst außen vor, damit ein unverändert
+ * gelassener Titel nicht fälschlich als Dopplung erkannt wird.
+ */
+export function findRecipeByTitle(title, excludeId = null) {
+  const normalized = (title || "").trim().toLowerCase();
+  if (!normalized) return null;
+  return (
+    getAllRecipes().find((r) => r.id !== excludeId && r.title.trim().toLowerCase() === normalized) ||
+    null
+  );
+}
+
 export function createRecipe(data) {
   const recipes = getAllRecipes();
   const newRecipe = {

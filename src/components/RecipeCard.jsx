@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Heart, Bookmark } from "lucide-react";
+import { Clock, Heart, Bookmark, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useRecipes } from "../context/RecipesContext";
 import { formatRelativeDate } from "../data/dateUtils";
@@ -13,8 +13,12 @@ import { formatRelativeDate } from "../data/dateUtils";
  * deren URL nach einiger Zeit abläuft) - ohne das würde der Browser
  * ein kaputtes Icon + den Titel als Fließtext zeigen und das
  * Karten-Layout sprengen.
+ *
+ * Auswahl-Modus (selectionMode, siehe AllRecipesPage.jsx): Klick auf die
+ * Karte togglet die Auswahl statt zur Detailseite zu navigieren, ein
+ * Häkchen-Kreis oben links zeigt den Status.
  */
-export default function RecipeCard({ recipe }) {
+export default function RecipeCard({ recipe, selectionMode = false, selected = false, onToggleSelect }) {
   const { toggleFavorite, toggleWantToCook } = useRecipes();
   const [imageFailed, setImageFailed] = useState(false);
   const showImage = recipe.image && !imageFailed;
@@ -31,8 +35,14 @@ export default function RecipeCard({ recipe }) {
     toggleWantToCook(recipe.id);
   }
 
+  function handleCardClick(e) {
+    if (!selectionMode) return;
+    e.preventDefault();
+    onToggleSelect?.(recipe.id);
+  }
+
   return (
-    <Link to={`/recipe/${recipe.id}`} className="block w-full">
+    <Link to={`/recipe/${recipe.id}`} onClick={handleCardClick} className="block w-full">
       <div className="dog-ear relative aspect-[4/5] w-full overflow-hidden rounded-[var(--radius-card)] bg-cream-card shadow-[0_8px_20px_-8px_rgba(43,42,34,0.25)]">
         {showImage ? (
           <img
@@ -48,31 +58,43 @@ export default function RecipeCard({ recipe }) {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleFavoriteClick}
-          aria-label={recipe.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
-          className="absolute bottom-2 left-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/40 backdrop-blur-sm"
-        >
-          <Heart
-            size={16}
-            strokeWidth={2}
-            className={recipe.isFavorite ? "fill-honey text-honey" : "text-cream"}
-          />
-        </button>
+        {selectionMode ? (
+          <span
+            className={`absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 ${
+              selected ? "border-olive bg-olive text-cream" : "border-cream bg-ink/30 backdrop-blur-sm"
+            }`}
+          >
+            {selected && <Check size={15} strokeWidth={3} />}
+          </span>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleFavoriteClick}
+              aria-label={recipe.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+              className="absolute bottom-2 left-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/40 backdrop-blur-sm"
+            >
+              <Heart
+                size={16}
+                strokeWidth={2}
+                className={recipe.isFavorite ? "fill-honey text-honey" : "text-cream"}
+              />
+            </button>
 
-        <button
-          type="button"
-          onClick={handleWantToCookClick}
-          aria-label={recipe.wantToCook ? 'Von "Will ich noch kochen" entfernen' : 'Zu "Will ich noch kochen" hinzufügen'}
-          className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/40 backdrop-blur-sm"
-        >
-          <Bookmark
-            size={16}
-            strokeWidth={2}
-            className={recipe.wantToCook ? "fill-olive text-olive" : "text-cream"}
-          />
-        </button>
+            <button
+              type="button"
+              onClick={handleWantToCookClick}
+              aria-label={recipe.wantToCook ? 'Von "Will ich noch kochen" entfernen' : 'Zu "Will ich noch kochen" hinzufügen'}
+              className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/40 backdrop-blur-sm"
+            >
+              <Bookmark
+                size={16}
+                strokeWidth={2}
+                className={recipe.wantToCook ? "fill-olive text-olive" : "text-cream"}
+              />
+            </button>
+          </>
+        )}
       </div>
       <div className="mt-2 px-1">
         <h3 className="truncate font-display text-[15px] font-medium text-ink">

@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
+import { findRecipeByTitle } from "../data/recipeStorage";
 import RecipeFormFields from "../components/RecipeFormFields";
+import DuplicateTitleModal from "../components/DuplicateTitleModal";
 
 /**
  * Bearbeiten-Seite für ein bestehendes Rezept (Route: /recipe/:id/edit).
@@ -12,6 +15,7 @@ export default function RecipeForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { recipes, editRecipe } = useRecipes();
+  const [pendingSave, setPendingSave] = useState(null); // { data, existingRecipe } bei Titel-Dopplung
 
   const existingRecipe = recipes.find((r) => r.id === id);
 
@@ -23,9 +27,18 @@ export default function RecipeForm() {
     );
   }
 
-  function handleSubmit(data) {
+  function saveRecipe(data) {
     editRecipe(id, data);
     navigate(`/recipe/${id}`);
+  }
+
+  function handleSubmit(data) {
+    const titleMatch = findRecipeByTitle(data.title, id);
+    if (titleMatch) {
+      setPendingSave({ data, existingRecipe: titleMatch });
+      return;
+    }
+    saveRecipe(data);
   }
 
   return (
@@ -48,6 +61,17 @@ export default function RecipeForm() {
         onCancel={() => navigate(-1)}
         submitLabel="Änderungen speichern"
       />
+
+      {pendingSave && (
+        <DuplicateTitleModal
+          existingRecipe={pendingSave.existingRecipe}
+          onConfirm={() => {
+            saveRecipe(pendingSave.data);
+            setPendingSave(null);
+          }}
+          onCancel={() => setPendingSave(null)}
+        />
+      )}
     </div>
   );
 }

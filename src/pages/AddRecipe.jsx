@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, Link2, PenLine, Loader2, CopyCheck, ClipboardPaste } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
 import { importFromLink, extractFromText } from "../data/extractApi";
@@ -11,9 +11,11 @@ import {
   recordSuccessfulImport,
   TESTER_IMPORT_LIMIT,
 } from "../data/testerMode";
+import { findRecipeByTitle } from "../data/recipeStorage";
 import RecipeFormFields from "../components/RecipeFormFields";
 import ImageDisclaimerBanner from "../components/ImageDisclaimerBanner";
 import EnglishUnitsNotice, { isEnglishUnitsNoticeHidden } from "../components/EnglishUnitsNotice";
+import DuplicateTitleModal from "../components/DuplicateTitleModal";
 
 /**
  * Rezept anlegen – zwei Wege:
@@ -39,6 +41,7 @@ import EnglishUnitsNotice, { isEnglishUnitsNoticeHidden } from "../components/En
  */
 export default function AddRecipe() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { recipes, addRecipe } = useRecipes();
 
   const [mode, setMode] = useState("choose");
@@ -48,6 +51,7 @@ export default function AddRecipe() {
   const [importWarning, setImportWarning] = useState("");
   const [prefill, setPrefill] = useState(null); // Ergebnis des Imports, für das Formular
   const [duplicateRecipe, setDuplicateRecipe] = useState(null);
+  const [pendingSave, setPendingSave] = useState(null); // { data, existingRecipe } bei Titel-Dopplung
   const [showEnglishUnitsNotice, setShowEnglishUnitsNotice] = useState(false);
 
   const [manualText, setManualText] = useState("");
@@ -58,18 +62,20 @@ export default function AddRecipe() {
     return u.trim().replace(/\/+$/, "").toLowerCase();
   }
 
-  async function handleImport(e) {
-    e.preventDefault();
+  // Kern der Import-Logik, unabhängig vom Formular-Submit nutzbar - siehe
+  // useEffect unten für den automatischen Start via Share-Target
+  // (?sharedUrl=..., TikTok "Teilen" -> direkt REZIPI, siehe App.jsx).
+  async function runImport(targetUrl) {
     setImportError("");
     setImportWarning("");
     setDuplicateRecipe(null);
 
-    if (!url.trim()) {
+    if (!targetUrl.trim()) {
       setImportError("Bitte zuerst einen Link einfügen.");
       return;
     }
     try {
-      new URL(url);
+      new URL(targetUrl);
     } catch {
       setImportError("Das sieht nicht wie ein gültiger Link aus.");
       return;
@@ -78,7 +84,7 @@ export default function AddRecipe() {
     // Testversion: Instagram-Import funktioniert praktisch nie (siehe
     // project-context.md), deshalb in der Testphase gar nicht erst
     // versuchen, statt Testern einen fehlschlagenden Import zuzumuten.
-    if (isTesterMode() && url.toLowerCase().includes("instagram.com")) {
+    if (isTesterMode() && targetUrl.toLowerCase().includes("instagram.com")) {
       setImportError(
         "Instagram wird in der Testversion nicht unterstützt (der automatische Import funktioniert dort kaum). Bitte einen TikTok- oder Pinterest-Link verwenden."
       );
@@ -87,7 +93,7 @@ export default function AddRecipe() {
 
     // Einfacher Duplikat-Check: gleicher Link bereits gespeichert?
     const existing = recipes.find(
-      (r) => r.sourceUrl && normalizeUrl(r.sourceUrl) === normalizeUrl(url)
+      (r) => r.sourceUrl && normalizeUrl(r.sourceUrl) === normalizeUrl(targetUrl)
     );
     if (existing) {
       setDuplicateRecipe(existing);
@@ -96,7 +102,7 @@ export default function AddRecipe() {
 
     setIsImporting(true);
     try {
-      const result = await importFromLink(url);
+      const result = await importFromLink(targetUrl);
       const newPrefill = {
         title: result.title || "",
         image: result.image || "",
@@ -105,7 +111,7 @@ export default function AddRecipe() {
         cookTime: result.cookTime || "",
         servings: result.servings || "",
         caloriesPerServing: result.caloriesPerServing || "",
-        sourceUrl: url,
+        sourceUrl: targetUrl,
         platform: result.platform || null,
       };
       // Praktisch nichts gefunden (Titel leer, keine Zutaten, keine
@@ -139,6 +145,24 @@ export default function AddRecipe() {
     }
   }
 
+  function handleImport(e) {
+    e.preventDefault();
+    runImport(url);
+  }
+
+  // Über TikTok "Teilen" -> REZIPI (Share-Target, siehe App.jsx) direkt
+  // hierher navigiert: Link ist schon bekannt, Import startet sofort statt
+  // erst "Von Link importieren" antippen und den Link einfügen zu müssen.
+  useEffect(() => {
+    const shared = searchParams.get("sharedUrl");
+    if (shared) {
+      setUrl(shared);
+      setMode("linkInput");
+      runImport(shared);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleExtractFromText() {
     if (!manualText.trim()) {
       setTextFallbackError("Bitte zuerst Text einfügen.");
@@ -169,7 +193,7 @@ export default function AddRecipe() {
     }
   }
 
-  function handleSubmit(data) {
+  function saveRecipe(data) {
     const created = addRecipe({
       ...data,
       sourceUrl: prefill?.sourceUrl || null,
@@ -179,6 +203,15 @@ export default function AddRecipe() {
       recordSuccessfulImport();
     }
     navigate(`/recipe/${created.id}`);
+  }
+
+  function handleSubmit(data) {
+    const titleMatch = findRecipeByTitle(data.title);
+    if (titleMatch) {
+      setPendingSave({ data, existingRecipe: titleMatch });
+      return;
+    }
+    saveRecipe(data);
   }
 
   return (
@@ -390,6 +423,17 @@ export default function AddRecipe() {
             submitLabel="Rezept speichern"
           />
         </>
+      )}
+
+      {pendingSave && (
+        <DuplicateTitleModal
+          existingRecipe={pendingSave.existingRecipe}
+          onConfirm={() => {
+            saveRecipe(pendingSave.data);
+            setPendingSave(null);
+          }}
+          onCancel={() => setPendingSave(null)}
+        />
       )}
     </div>
   );
