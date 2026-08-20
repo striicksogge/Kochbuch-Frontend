@@ -32,3 +32,36 @@ export async function sendFeedback({ category, message }) {
     throw new Error(`Formspree antwortete mit Status ${response.status}`);
   }
 }
+
+/**
+ * Schickt die Antwort auf eine der beiden Tester-Umfragen ab (siehe
+ * data/surveys.js und components/SurveyModal.jsx für den Frage-Fluss).
+ * Läuft über denselben Formspree-Endpunkt wie das Feedback-Formular,
+ * aber mit "type: survey" markiert, damit beides im Formspree-
+ * Dashboard auseinanderzuhalten ist. "answers" enthält die
+ * Fluss-spezifischen Felder (z. B. rating/comment oder
+ * satisfied/wouldContinue/willingToPay), ein Objekt statt fester
+ * Parameter, weil beide Umfragen unterschiedliche Felder sammeln.
+ */
+export async function sendSurveyResponse({ surveyId, answers }) {
+  const response = await fetch(FORMSPREE_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      type: "survey",
+      surveyId,
+      ...answers,
+      page: window.location.hash || "/",
+      userAgent: navigator.userAgent,
+      screen: `${window.innerWidth}x${window.innerHeight}`,
+      sentAt: new Date().toISOString(),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Formspree antwortete mit Status ${response.status}`);
+  }
+}

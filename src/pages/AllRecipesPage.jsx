@@ -4,6 +4,7 @@ import { ArrowLeft, Download, Upload } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
 import RecipeCard from "../components/RecipeCard";
 import { exportData, importDataFromFile } from "../data/backup";
+import ImportModeModal from "../components/ImportModeModal";
 
 /**
  * Zeigt wirklich ALLE Rezepte im Grid (im Gegensatz zu Home, wo nur
@@ -16,6 +17,7 @@ export default function AllRecipesPage() {
   const { recipes } = useRecipes();
   const [sortBy, setSortBy] = useState("newest");
   const fileInputRef = useRef(null);
+  const [pendingImportFile, setPendingImportFile] = useState(null);
 
   const sorted = [...recipes].sort((a, b) => {
     if (sortBy === "title") return a.title.localeCompare(b.title, "de");
@@ -30,19 +32,22 @@ export default function AllRecipesPage() {
     fileInputRef.current?.click();
   }
 
-  async function handleImportChange(e) {
+  function handleImportChange(e) {
     const file = e.target.files?.[0];
     e.target.value = ""; // erlaubt erneute Auswahl derselben Datei
     if (!file) return;
+    setPendingImportFile(file);
+  }
 
-    const confirmed = window.confirm(
-      "Backup einspielen? Das überschreibt alle aktuell gespeicherten Rezepte, den Essensplan und die Einkaufsliste."
-    );
-    if (!confirmed) return;
+  async function handleImportModeChosen(mode) {
+    const file = pendingImportFile;
+    setPendingImportFile(null);
+    if (!file) return;
 
     try {
-      const count = await importDataFromFile(file);
-      window.alert(`${count} Rezept${count !== 1 ? "e" : ""} importiert. Die Seite wird jetzt neu geladen.`);
+      const count = await importDataFromFile(file, mode);
+      const verb = mode === "merge" ? "hinzugefügt" : "importiert";
+      window.alert(`${count} Rezept${count !== 1 ? "e" : ""} ${verb}. Die Seite wird jetzt neu geladen.`);
       window.location.reload();
     } catch (err) {
       window.alert(err.message);
@@ -116,6 +121,13 @@ export default function AllRecipesPage() {
           />
         </div>
       </section>
+
+      {pendingImportFile && (
+        <ImportModeModal
+          onChoose={handleImportModeChosen}
+          onCancel={() => setPendingImportFile(null)}
+        />
+      )}
     </div>
   );
 }

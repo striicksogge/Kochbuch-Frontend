@@ -7,6 +7,8 @@
 // mechanismus. Wer localStorage löscht, bekommt neue 10 Versuche. Für
 // eine Handvoll vertrauter Tester ist das ausreichend.
 
+import { markSurveyPending, SURVEY_IDS } from "./surveys";
+
 const MODE_KEY = "kochbuch_v2_tester_mode";
 const COUNT_KEY = "kochbuch_v2_tester_import_count";
 
@@ -43,7 +45,16 @@ export function hasReachedImportLimit() {
   return getImportCount() >= TESTER_IMPORT_LIMIT;
 }
 
-/** Zählt nur ERFOLGREICHE Importe (tatsächlich gespeichertes Rezept), nicht Versuche. */
+/**
+ * Zählt nur ERFOLGREICHE Importe (tatsächlich gespeichertes Rezept), nicht
+ * Versuche. Löst außerdem die beiden Tester-Umfragen aus (data/surveys.js):
+ * einmal direkt nach dem allerersten Import, einmal beim Erreichen des
+ * Test-Limits (Ende der Testphase).
+ */
 export function recordSuccessfulImport() {
-  localStorage.setItem(COUNT_KEY, String(getImportCount() + 1));
+  const newCount = getImportCount() + 1;
+  localStorage.setItem(COUNT_KEY, String(newCount));
+
+  if (newCount === 1) markSurveyPending(SURVEY_IDS.FIRST_IMPORT);
+  if (newCount === TESTER_IMPORT_LIMIT) markSurveyPending(SURVEY_IDS.TEST_PHASE);
 }

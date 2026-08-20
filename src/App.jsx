@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, useSearchParams } from "react-router-dom";
+import { Routes, Route, useSearchParams, useLocation } from "react-router-dom";
 import { RecipesProvider } from "./context/RecipesContext";
 import { ToastProvider } from "./context/ToastContext";
 import { activateTesterModeFromParams } from "./data/testerMode";
 import { hasSeenLatestWhatsNew } from "./data/whatsNew";
+import { getPendingSurveyId } from "./data/surveys";
 import SplashScreen from "./components/SplashScreen";
 import Onboarding, { hasSeenOnboarding } from "./components/Onboarding";
 import AppTour from "./components/AppTour";
 import WhatsNewModal from "./components/WhatsNewModal";
+import SurveyModal from "./components/SurveyModal";
 import Home from "./pages/Home";
 import RecipeDetail from "./pages/RecipeDetail";
 import RecipeForm from "./pages/RecipeForm";
@@ -32,7 +34,8 @@ import BottomNav from "./components/BottomNav";
  *
  * Testmodus: Ein Link mit ?tester=1 aktiviert dauerhaft (in diesem
  * Browser) ein Test-Limit von 10 Importen, siehe data/testerMode.js
- * und AddRecipe.jsx.
+ * und AddRecipe.jsx. Löst außerdem zwei kurze Umfragen aus (nach dem
+ * ersten Import und nach Erreichen des Limits), siehe data/surveys.js.
  */
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -43,11 +46,21 @@ export default function App() {
   const [showWhatsNew, setShowWhatsNew] = useState(
     () => hasSeenOnboarding() && !hasSeenLatestWhatsNew()
   );
+  const [pendingSurveyId, setPendingSurveyId] = useState(() => getPendingSurveyId());
   const [searchParams] = useSearchParams();
+  const location = useLocation();
 
   useEffect(() => {
     activateTesterModeFromParams(searchParams);
   }, [searchParams]);
+
+  // Tester-Umfragen (data/surveys.js) werden asynchron ausgelöst (nach
+  // einem erfolgreichen Import in AddRecipe.jsx), deshalb bei jeder
+  // Navigation neu prüfen, ob inzwischen eine ansteht.
+  useEffect(() => {
+    const pending = getPendingSurveyId();
+    if (pending) setPendingSurveyId(pending);
+  }, [location]);
 
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
@@ -85,6 +98,9 @@ export default function App() {
         </div>
         {tourActive && <AppTour onFinish={() => setTourActive(false)} />}
         {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
+        {!showWhatsNew && pendingSurveyId && (
+          <SurveyModal surveyId={pendingSurveyId} onClose={() => setPendingSurveyId(null)} />
+        )}
       </RecipesProvider>
     </ToastProvider>
   );
