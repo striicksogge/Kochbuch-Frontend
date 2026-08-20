@@ -1,6 +1,8 @@
 // Zentrale Kategorien-Konfiguration. Eine Änderung/Erweiterung hier
 // wirkt sich automatisch auf Auswahl-UI, Formular und Kategorie-Seiten aus.
 
+import { getCustomCategories } from "./customCategories";
+
 export const CATEGORY_GROUPS = [
   {
     id: "mahlzeit",
@@ -12,7 +14,7 @@ export const CATEGORY_GROUPS = [
     id: "ernaehrung",
     label: "Ernährung",
     emoji: "🥗",
-    options: ["High Protein", "Low Carb", "Kalorienarm", "Soulfood"],
+    options: ["High Protein", "Low Carb", "Kalorienarm", "Soulfood", "Vegetarisch", "Vegan", "Glutenfrei"],
   },
   {
     id: "hauptzutat",
@@ -85,5 +87,24 @@ export const CATEGORY_GROUPS = [
   },
 ];
 
-/** Alle Kategorie-Optionen flach, z. B. für Suche/Validierung. */
+/** Alle fest eingebauten Kategorie-Optionen flach, z. B. für Suche/Validierung. */
 export const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap((g) => g.options);
+
+/**
+ * Kategorie-Gruppen inklusive nutzergenerierter Kategorien (siehe
+ * data/customCategories.js), angehängt an die Gruppe "Eigene
+ * Kategorien". Für die Auswahl-UI (CategorySelector) statt der
+ * statischen CATEGORY_GROUPS.
+ */
+export function getCategoryGroupsWithCustom() {
+  const custom = getCustomCategories();
+  if (custom.length === 0) return CATEGORY_GROUPS;
+  return CATEGORY_GROUPS.map((g) =>
+    g.id === "eigene" ? { ...g, options: [...g.options, ...custom] } : g
+  );
+}
+
+/** Alle Kategorien inklusive nutzergenerierter - für Validierung/Cleanup. */
+export function getAllCategoriesIncludingCustom() {
+  return [...ALL_CATEGORIES, ...getCustomCategories()];
+}

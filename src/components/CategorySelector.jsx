@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { CATEGORY_GROUPS } from "../data/categories";
+import { getCategoryGroupsWithCustom } from "../data/categories";
 
 /**
  * Zweistufige Kategorie-Auswahl:
@@ -14,6 +14,10 @@ import { CATEGORY_GROUPS } from "../data/categories";
  */
 export default function CategorySelector({ selected = [], onChange }) {
   const [openGroupId, setOpenGroupId] = useState(null);
+  // Frisch bei jedem Mount gelesen (nicht per useMemo gecacht), damit neu
+  // angelegte eigene Kategorien (Weiteres > Kategorien hinzufügen) ohne
+  // Reload in der Auswahl auftauchen.
+  const categoryGroups = getCategoryGroupsWithCustom();
 
   function toggleGroup(groupId) {
     setOpenGroupId((current) => (current === groupId ? null : groupId));
@@ -31,7 +35,7 @@ export default function CategorySelector({ selected = [], onChange }) {
     <div>
       {/* Ebene 1 */}
       <div className="flex flex-wrap gap-2">
-        {CATEGORY_GROUPS.map((group) => {
+        {categoryGroups.map((group) => {
           const countInGroup = group.options.filter((o) => selected.includes(o)).length;
           const isOpen = openGroupId === group.id;
           return (
@@ -67,7 +71,7 @@ export default function CategorySelector({ selected = [], onChange }) {
       {openGroupId && (
         <div className="mt-3 rounded-[var(--radius-card)] border border-sand-line bg-cream-card p-3">
           <div className="flex flex-wrap gap-2">
-            {CATEGORY_GROUPS.find((g) => g.id === openGroupId).options.map((option) => {
+            {categoryGroups.find((g) => g.id === openGroupId).options.map((option) => {
               const isChecked = selected.includes(option);
               return (
                 <button

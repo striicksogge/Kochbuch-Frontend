@@ -10,9 +10,9 @@ const STEPS = [
   { id: "search", text: "Hier suchst du nach Rezept, Zutat oder Idee – auch ganze Sätze wie „Schnell für heute“ funktionieren." },
   { id: "add", text: "Über diesen Button importierst du ein Rezept per Link (TikTok, Instagram, Pinterest) oder legst es manuell an." },
   { id: "nav-all", text: "„Alle“ zeigt deine komplette Rezeptliste, sortier- und filterbar." },
-  { id: "nav-plan", text: "Im Essensplan verplanst du deine Woche pro Wochentag." },
-  { id: "nav-list", text: "Die Einkaufsliste fasst die Zutaten aus deinem Essensplan automatisch zusammen." },
+  { id: "nav-plan", text: "Im Essensplan verplanst du deine Woche pro Wochentag – von dort auch direkt zur Einkaufsliste, die die Zutaten automatisch zusammenfasst." },
   { id: "nav-favorites", text: "Hier landen deine mit ♥ markierten Lieblingsrezepte." },
+  { id: "nav-weiteres", text: "Unter „Weiteres“ findest du Import/Export, eigene Kategorien und kannst Fehler oder Ideen melden." },
 ];
 
 export default function AppTour({ onFinish }) {

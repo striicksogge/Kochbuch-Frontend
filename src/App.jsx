@@ -17,8 +17,7 @@ import AddRecipe from "./pages/AddRecipe";
 import SearchPage from "./pages/SearchPage";
 import Favorites from "./pages/Favorites";
 import WantToCook from "./pages/WantToCook";
-import ShoppingListPage from "./pages/ShoppingListPage";
-import MealPlanPage from "./pages/MealPlanPage";
+import PlanAndListPage from "./pages/PlanAndListPage";
 import AllRecipesPage from "./pages/AllRecipesPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import BottomNav from "./components/BottomNav";
@@ -89,8 +88,8 @@ export default function App() {
             <Route path="/search" element={<SearchPage />} />
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/want-to-cook" element={<WantToCook />} />
-            <Route path="/shopping-list" element={<ShoppingListPage />} />
-            <Route path="/meal-plan" element={<MealPlanPage />} />
+            <Route path="/shopping-list" element={<PlanAndListPage />} />
+            <Route path="/meal-plan" element={<PlanAndListPage />} />
             <Route path="/all-recipes" element={<AllRecipesPage />} />
             <Route path="/feedback" element={<FeedbackPage />} />
           </Routes>

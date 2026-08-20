@@ -9,9 +9,11 @@ const FORMSPREE_ENDPOINT = "https://formspree.io/f/xkjwpjbw";
 /**
  * Schickt eine Feedback-Nachricht ab. Ergänzt automatisch ein paar technische
  * Angaben (aktuelle Seite, Gerät, Zeitpunkt), damit ein Fehlerbericht auch
- * ohne Rückfrage nützlich ist.
+ * ohne Rückfrage nützlich ist. name/email sind optional - nur ausgefüllt,
+ * wenn sich der Nutzer ggf. zurückmelden lassen möchte (siehe
+ * components/WeiteresMenu.jsx: "Fehler melden" / "Ideen für REZIPI").
  */
-export async function sendFeedback({ category, message }) {
+export async function sendFeedback({ category, message, name, email }) {
   const response = await fetch(FORMSPREE_ENDPOINT, {
     method: "POST",
     headers: {
@@ -21,6 +23,8 @@ export async function sendFeedback({ category, message }) {
     body: JSON.stringify({
       category,
       message,
+      name: name || "",
+      email: email || "",
       page: window.location.hash || "/",
       userAgent: navigator.userAgent,
       screen: `${window.innerWidth}x${window.innerHeight}`,

@@ -5,7 +5,7 @@ import Hero from "../components/Hero";
 import RecipeSlider from "../components/RecipeSlider";
 import AddRecipeButton from "../components/AddRecipeButton";
 import { useRecipes } from "../context/RecipesContext";
-import { ChefHat, Dices, CalendarCheck, History } from "lucide-react";
+import { ChefHat, Dices, CalendarCheck, Heart, History } from "lucide-react";
 import { WEEKDAYS, getMealPlan } from "../data/mealPlanStorage";
 import { isTesterMode } from "../data/testerMode";
 import TesterModeBanner from "../components/TesterModeBanner";
@@ -24,9 +24,11 @@ const JS_DAY_TO_KEY = ["so", "mo", "di", "mi", "do", "fr", "sa"];
  *  6. "Lange nicht gekocht" - Rezepte mit dem ältesten lastCookedAt,
  *     die aber schon mindestens einmal gekocht wurden
  *
- * Bewusst NICHT mehr auf Home: Favoriten- und Kategorie-Bereiche - die
- * sind über die Bottom-Nav (Favoriten) bzw. die Suche (Kategorie-Filter)
- * weiterhin erreichbar, sollen die Startseite aber nicht überladen.
+ * Bewusst kein eigener Favoriten-Bereich mit Rezeptvorschau auf Home
+ * (nur ein schmaler Link) - Favoriten sind vollständig über die
+ * Bottom-Nav erreichbar, sollen die Startseite aber nicht mit einem
+ * zweiten Grid überladen. Kategorie-Bereiche ebenfalls nicht auf Home,
+ * dafür die Suche (Kategorie-Filter).
  */
 export default function Home() {
   const { recipes } = useRecipes();
@@ -89,6 +91,12 @@ export default function Home() {
     <div className="pb-24">
       {isTesterMode() && <TesterModeBanner />}
       <SearchBar />
+
+      <div className="flex justify-end px-4 pt-2">
+        <Link to="/favorites" className="flex items-center gap-1 text-xs font-medium text-ink-soft">
+          <Heart size={14} /> Favoriten
+        </Link>
+      </div>
 
       <div className="px-4 pt-3">
         <button

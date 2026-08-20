@@ -2,7 +2,7 @@
 // später leicht gegen eine echte Datenbank austauschbar, ohne dass
 // Komponenten sich ändern müssten (nur dieser Datei-Inhalt würde sich ändern).
 
-import { ALL_CATEGORIES } from "./categories";
+import { getAllCategoriesIncludingCustom } from "./categories";
 
 const STORAGE_KEY = "kochbuch_v2_recipes";
 
@@ -147,8 +147,9 @@ export function duplicateRecipe(id) {
 export function cleanupStaleCategories() {
   const recipes = getAllRecipes();
   let changed = false;
+  const validNames = getAllCategoriesIncludingCustom();
   const cleaned = recipes.map((r) => {
-    const validCategories = (r.categories || []).filter((c) => ALL_CATEGORIES.includes(c));
+    const validCategories = (r.categories || []).filter((c) => validNames.includes(c));
     if (validCategories.length !== (r.categories || []).length) {
       changed = true;
       return { ...r, categories: validCategories };
