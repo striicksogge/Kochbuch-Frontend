@@ -3,6 +3,12 @@ import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
+import { applyTheme } from './data/theme.js'
+
+// Vor dem ersten Render anwenden, damit die gespeicherte Darstellung
+// (Hell/Dunkel/System, siehe data/theme.js) sofort greift statt erst
+// nach einem kurzen Aufblitzen des Standard-Themes.
+applyTheme()
 
 // HashRouter statt BrowserRouter: GitHub Pages kann nur echte Dateien
 // ausliefern, keine "virtuellen" React-Routen. Mit HashRouter fragt

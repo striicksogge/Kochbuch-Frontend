@@ -31,6 +31,37 @@
   --radius-chip: 999px;
 }
 
+/*
+ * Dark Mode: Standard "System" (folgt prefers-color-scheme), manuell
+ * erzwingbar über data-theme="light"/"dark" auf <html> (siehe
+ * data/theme.js + WeiteresMenu.jsx "Darstellung"). Da die gesamte App
+ * ausschließlich diese semantischen Farb-Tokens verwendet (bg-cream,
+ * text-ink, border-sand-line, ...) statt roher Tailwind-Farben, reicht
+ * es, hier die Variablen umzudefinieren - kein Component-Code nötig.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-cream: #211F1A;
+    --color-cream-card: #2A2721;
+    --color-ink: #F3EEE3;
+    --color-ink-soft: #A9A392;
+    --color-olive: #8FA06B;
+    --color-olive-deep: #B7C99A;
+    --color-sand-line: #3D3A31;
+    --color-honey: #D9A059;
+  }
+}
+:root[data-theme="dark"] {
+  --color-cream: #211F1A;
+  --color-cream-card: #2A2721;
+  --color-ink: #F3EEE3;
+  --color-ink-soft: #A9A392;
+  --color-olive: #8FA06B;
+  --color-olive-deep: #B7C99A;
+  --color-sand-line: #3D3A31;
+  --color-honey: #D9A059;
+}
+
 body {
   background-color: var(--color-cream);
   color: var(--color-ink);

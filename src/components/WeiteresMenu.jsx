@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { Upload, Tag, Bug, Lightbulb, X, Loader2, Check } from "lucide-react";
+import { Upload, Tag, Bug, Lightbulb, Moon, X, Loader2, Check } from "lucide-react";
 import { exportData, importDataFromFile } from "../data/backup";
 import { sendFeedback } from "../data/feedbackApi";
 import { getCustomCategories, addCustomCategory, removeCustomCategory } from "../data/customCategories";
+import { getTheme, setTheme } from "../data/theme";
 import ImportModeModal from "./ImportModeModal";
 
 /**
@@ -33,12 +34,14 @@ export default function WeiteresMenu({ isOpen, onClose }) {
             <SpeedDialItem icon={Bug} label="Fehler melden" onClick={() => openPanel("bug")} />
             <SpeedDialItem icon={Tag} label="Kategorien hinzufügen" onClick={() => openPanel("add-category")} />
             <SpeedDialItem icon={Upload} label="Import/Export" onClick={() => openPanel("import-export")} />
+            <SpeedDialItem icon={Moon} label="Darstellung" onClick={() => openPanel("theme")} />
           </div>
         </div>
       )}
 
       {activePanel === "import-export" && <ImportExportPanel onClose={() => setActivePanel(null)} />}
       {activePanel === "add-category" && <AddCategoryPanel onClose={() => setActivePanel(null)} />}
+      {activePanel === "theme" && <ThemePanel onClose={() => setActivePanel(null)} />}
       {activePanel === "bug" && (
         <FeedbackFormPanel
           title="Fehler melden"
@@ -156,6 +159,40 @@ function ImportExportPanel({ onClose }) {
           onCancel={() => setPendingImportFile(null)}
         />
       )}
+    </FloatingPanel>
+  );
+}
+
+const THEME_OPTIONS = [
+  { id: "system", label: "System" },
+  { id: "light", label: "Hell" },
+  { id: "dark", label: "Dunkel" },
+];
+
+function ThemePanel({ onClose }) {
+  const [theme, setThemeState] = useState(getTheme);
+
+  function choose(id) {
+    setTheme(id);
+    setThemeState(id);
+  }
+
+  return (
+    <FloatingPanel title="Darstellung" onClose={onClose}>
+      <div className="space-y-2">
+        {THEME_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => choose(opt.id)}
+            className={`w-full rounded-[var(--radius-chip)] px-4 py-2.5 text-sm font-medium ${
+              theme === opt.id ? "bg-olive text-cream" : "border border-sand-line bg-cream text-ink"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
     </FloatingPanel>
   );
 }

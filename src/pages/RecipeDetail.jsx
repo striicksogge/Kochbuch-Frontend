@@ -1,23 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Clock, Users, Pencil, Trash2, ArrowLeft, ExternalLink, Heart, Bookmark, Copy, Minus, Plus, Flame, ChefHat, Check, CalendarPlus, ShoppingCart } from "lucide-react";
+import { Clock, Users, Pencil, Trash2, ArrowLeft, ExternalLink, Heart, Bookmark, Copy, Minus, Plus, Flame, ChefHat, Check, CalendarPlus, ShoppingCart, Share2 } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
 import { useToast } from "../context/ToastContext";
 import { scaleAmount } from "../data/ingredients";
 import { WEEKDAYS, getMealPlan, saveMealPlan } from "../data/mealPlanStorage";
 import { getShoppingListState, saveSelectedRecipeIds } from "../data/shoppingListStorage";
-
-/** Formatiert ein ISO-Datum als "heute", "gestern" oder "vor X Tagen". */
-function formatRelativeDate(isoString) {
-  const date = new Date(isoString);
-  const diffDays = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays <= 0) return "heute";
-  if (diffDays === 1) return "gestern";
-  if (diffDays < 30) return `vor ${diffDays} Tagen`;
-  const months = Math.floor(diffDays / 30);
-  if (months < 12) return `vor ${months} Monat${months > 1 ? "en" : ""}`;
-  return date.toLocaleDateString("de-DE", { month: "long", year: "numeric" });
-}
+import { formatRelativeDate } from "../data/dateUtils";
 
 /**
  * Zeigt ein einzelnes Rezept vollständig an.
@@ -65,6 +54,34 @@ export default function RecipeDetail() {
     }
     saveSelectedRecipeIds([...selectedRecipeIds, recipe.id]);
     showToast({ message: `"${recipe.title}" zur Einkaufsliste hinzugefügt` });
+  }
+
+  // Teilt automatisch den Original-Link (TikTok/Pinterest/Instagram), nicht
+  // einen Rezipi-internen Link - für importierte Rezepte ist das der Link,
+  // den man eigentlich teilen will. Ohne sourceUrl (manuell angelegtes
+  // Rezept) gibt es nichts Sinnvolles zu teilen, dann nur den Titel als Text.
+  async function handleShare() {
+    const shareData = recipe.sourceUrl
+      ? { title: recipe.title, url: recipe.sourceUrl }
+      : { title: recipe.title, text: recipe.title };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // Nutzer hat den Teilen-Dialog abgebrochen - kein Fehler, kein Toast.
+      }
+      return;
+    }
+    // Kein Web-Share (z. B. Desktop-Browser): Link/Titel stattdessen kopieren.
+    // Clipboard-Zugriff kann verweigert werden (Berechtigung/Sicherheitskontext),
+    // dann wenigstens verständlich melden statt eines unbehandelten Fehlers.
+    try {
+      await navigator.clipboard.writeText(recipe.sourceUrl || recipe.title);
+      showToast({ message: recipe.sourceUrl ? "Link kopiert" : "Titel kopiert" });
+    } catch (err) {
+      console.error(err);
+      showToast({ message: "Teilen/Kopieren nicht möglich" });
+    }
   }
 
   if (!recipe) {
@@ -282,6 +299,13 @@ export default function RecipeDetail() {
             className="flex items-center gap-1.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream-card px-4 py-2 text-sm font-medium text-ink"
           >
             <ShoppingCart size={15} /> Zur Einkaufsliste
+          </button>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex items-center gap-1.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream-card px-4 py-2 text-sm font-medium text-ink"
+          >
+            <Share2 size={15} /> Teilen
           </button>
         </div>
 

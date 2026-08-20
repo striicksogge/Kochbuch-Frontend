@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, ChevronDown, ShoppingCart, CalendarDays, Dices, Search } from "lucide-react";
+import { X, ChevronDown, ChevronLeft, ChevronRight, ShoppingCart, CalendarDays, Dices, Search } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
-import { WEEKDAYS, getMealPlan, saveMealPlan } from "../data/mealPlanStorage";
+import { WEEKDAYS, WEEK_COUNT, WEEK_LABELS, getMealPlan, saveMealPlan } from "../data/mealPlanStorage";
 import { saveSelectedRecipeIds } from "../data/shoppingListStorage";
 
 /**
@@ -10,13 +10,23 @@ import { saveSelectedRecipeIds } from "../data/shoppingListStorage";
  * einfach "Montag -> Rezept X"). Tag antippen öffnet eine Liste zur
  * Auswahl (statt Drag & Drop, das auf Touchscreens unzuverlässig ist).
  * Würfel-Symbol pro Tag und "Woche zufällig füllen" für alle auf einmal.
+ *
+ * Mehrere Wochenvorlagen ("Diese Woche" / "Nächste Woche"), umschaltbar
+ * über den Pfeil-Pager ganz oben - siehe data/mealPlanStorage.js
+ * (weekOffset-Parameter).
  */
 export default function MealPlanPage() {
   const { recipes } = useRecipes();
   const navigate = useNavigate();
-  const [plan, setPlan] = useState(getMealPlan);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [plan, setPlan] = useState(() => getMealPlan(weekOffset));
   const [openDay, setOpenDay] = useState(null);
   const [dayFilter, setDayFilter] = useState("");
+
+  useEffect(() => {
+    setPlan(getMealPlan(weekOffset));
+    setOpenDay(null);
+  }, [weekOffset]);
 
   function toggleDay(dayKey) {
     setOpenDay(openDay === dayKey ? null : dayKey);
@@ -26,7 +36,7 @@ export default function MealPlanPage() {
   function assignRecipe(dayKey, recipeId) {
     const next = { ...plan, [dayKey]: recipeId };
     setPlan(next);
-    saveMealPlan(next);
+    saveMealPlan(next, weekOffset);
     setOpenDay(null);
   }
 
@@ -44,13 +54,13 @@ export default function MealPlanPage() {
       next[day.key] = randomRecipeId();
     });
     setPlan(next);
-    saveMealPlan(next);
+    saveMealPlan(next, weekOffset);
   }
 
   function clearDay(dayKey) {
     const next = { ...plan, [dayKey]: null };
     setPlan(next);
-    saveMealPlan(next);
+    saveMealPlan(next, weekOffset);
   }
 
   function getRecipe(id) {
@@ -69,7 +79,30 @@ export default function MealPlanPage() {
 
   return (
     <div className="px-4 pb-24 pt-6">
-      <h1 className="font-display text-2xl font-semibold text-ink">Essensplan</h1>
+      <div className="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => setWeekOffset((w) => w - 1)}
+          disabled={weekOffset === 0}
+          aria-label="Vorherige Woche"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-ink disabled:opacity-30"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <span className="w-32 text-center font-display text-sm font-medium text-ink">
+          {WEEK_LABELS[weekOffset]}
+        </span>
+        <button
+          type="button"
+          onClick={() => setWeekOffset((w) => w + 1)}
+          disabled={weekOffset === WEEK_COUNT - 1}
+          aria-label="Nächste Woche"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-ink disabled:opacity-30"
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+      <h1 className="mt-3 font-display text-2xl font-semibold text-ink">Essensplan</h1>
       <p className="mt-1 text-sm text-ink-soft">
         Wiederkehrende Wochenvorlage – lege für jeden Tag ein Rezept fest.
       </p>

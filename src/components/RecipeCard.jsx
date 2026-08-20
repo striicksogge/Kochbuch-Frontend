@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Clock, Heart, Bookmark } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useRecipes } from "../context/RecipesContext";
+import { formatRelativeDate } from "../data/dateUtils";
 
 /**
  * Einzelne Rezeptkarte für Slider und Grid-Ansichten.
@@ -81,6 +82,11 @@ export default function RecipeCard({ recipe }) {
           <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-soft">
             <Clock size={12} strokeWidth={2} />
             {recipe.cookTime}
+          </p>
+        )}
+        {recipe.lastCookedAt && (
+          <p className="mt-0.5 text-[10px] text-ink-soft/80">
+            {recipe.cookCount || 1}× gekocht · zuletzt {formatRelativeDate(recipe.lastCookedAt)}
           </p>
         )}
       </div>

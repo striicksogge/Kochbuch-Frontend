@@ -99,7 +99,11 @@ export function markAsCooked(id) {
   const recipes = getAllRecipes();
   const index = recipes.findIndex((r) => r.id === id);
   if (index === -1) return;
-  recipes[index] = { ...recipes[index], lastCookedAt: new Date().toISOString() };
+  recipes[index] = {
+    ...recipes[index],
+    lastCookedAt: new Date().toISOString(),
+    cookCount: (recipes[index].cookCount || 0) + 1,
+  };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
 }
 

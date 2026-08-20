@@ -10,15 +10,38 @@ export const WEEKDAYS = [
   { key: "so", label: "Sonntag" },
 ];
 
+/** Anzahl der wiederkehrenden Wochenvorlagen, aktuell "Diese Woche" (0) und "Nächste Woche" (1). */
+export const WEEK_COUNT = 2;
+
+export const WEEK_LABELS = ["Diese Woche", "Nächste Woche"];
+
 function emptyPlan() {
   return Object.fromEntries(WEEKDAYS.map((d) => [d.key, null]));
 }
 
-export function getMealPlan() {
+/**
+ * Liest alle Wochenvorlagen, keyed by Wochen-Offset ("0", "1", ...).
+ * Altformat (vor der Mehrfach-Wochen-Funktion) hatte die Wochentage
+ * direkt auf oberster Ebene statt unter einem Wochen-Offset - wird
+ * hier einmalig als Woche "0" ("Diese Woche") interpretiert.
+ */
+function readAll() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? { ...emptyPlan(), ...JSON.parse(raw) } : emptyPlan();
+  if (!raw) return {};
+  const parsed = JSON.parse(raw);
+  if (WEEKDAYS.some((d) => d.key in parsed)) {
+    return { "0": parsed };
+  }
+  return parsed;
 }
 
-export function saveMealPlan(plan) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(plan));
+export function getMealPlan(weekOffset = 0) {
+  const all = readAll();
+  return { ...emptyPlan(), ...all[String(weekOffset)] };
+}
+
+export function saveMealPlan(plan, weekOffset = 0) {
+  const all = readAll();
+  all[String(weekOffset)] = plan;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
 }
