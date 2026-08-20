@@ -28,7 +28,14 @@ export default function RecipeFormFields({ initialValues = {}, onSubmit, onCance
   // Platzhalter zum Screenshot-Ersetzen anzeigen. Sobald der Wert sich
   // ändert (Screenshot hochgeladen oder andere URL eingetragen), greift
   // das nicht mehr - dann wird wieder normal der Wert angezeigt.
-  const importedImageUrl = initialValues.sourceUrl ? initialValues.image || null : null;
+  // Ausnahme: Wurde das Bild bereits als Data-URL heruntergeladen (siehe
+  // data/imageDownloadSetting.js), ist es KEIN fremder Link mehr, sondern
+  // schon eine eigene, dauerhafte Kopie - genau wie ein eigener Upload,
+  // deshalb hier wie ein solcher behandeln (Vorschau zeigen).
+  const importedImageUrl =
+    initialValues.sourceUrl && initialValues.image && !initialValues.image.startsWith("data:")
+      ? initialValues.image
+      : null;
   const [servings, setServings] = useState(initialValues.servings || 4);
   const [cookTime, setCookTime] = useState(initialValues.cookTime || "");
   const [caloriesPerServing, setCaloriesPerServing] = useState(initialValues.caloriesPerServing || "");

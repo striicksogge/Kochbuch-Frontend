@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { ArrowLeft, Link2, PenLine, Loader2, CopyCheck, ClipboardPaste } from "lucide-react";
+import { ArrowLeft, Link2, PenLine, Layers, Loader2, CopyCheck, ClipboardPaste, Check, X } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
 import { importFromLink, extractFromText } from "../data/extractApi";
 import { hasEnglishUnits } from "../data/ingredients";
@@ -12,6 +12,7 @@ import {
   TESTER_IMPORT_LIMIT,
 } from "../data/testerMode";
 import { findRecipeByTitle } from "../data/recipeStorage";
+import { isThumbnailDownloadEnabled } from "../data/imageDownloadSetting";
 import RecipeFormFields from "../components/RecipeFormFields";
 import ImageDisclaimerBanner from "../components/ImageDisclaimerBanner";
 import EnglishUnitsNotice, { isEnglishUnitsNoticeHidden } from "../components/EnglishUnitsNotice";
@@ -58,6 +59,10 @@ export default function AddRecipe() {
   const [isExtractingText, setIsExtractingText] = useState(false);
   const [textFallbackError, setTextFallbackError] = useState("");
 
+  const [bulkText, setBulkText] = useState("");
+  const [bulkResults, setBulkResults] = useState(null); // Array während/nach Mehrfach-Import
+  const [isBulkRunning, setIsBulkRunning] = useState(false);
+
   function normalizeUrl(u) {
     return u.trim().replace(/\/+$/, "").toLowerCase();
   }
@@ -102,7 +107,7 @@ export default function AddRecipe() {
 
     setIsImporting(true);
     try {
-      const result = await importFromLink(targetUrl);
+      const result = await importFromLink(targetUrl, { embedImage: isThumbnailDownloadEnabled() });
       const newPrefill = {
         title: result.title || "",
         image: result.image || "",
@@ -162,6 +167,93 @@ export default function AddRecipe() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Mehrfach-Import: ein Link pro Zeile, läuft nacheinander (nicht
+  // parallel) durch dieselbe Import-Logik wie der Einzel-Import, speichert
+  // aber jedes gefundene Rezept SOFORT ohne Kontrollschritt (der wäre bei
+  // vielen Links zu mühsam - "in einem Abwasch"). Jedes so angelegte
+  // Rezept bleibt danach ganz normal bearbeitbar wie jedes andere auch
+  // (Kategorien etc. lassen sich über "Bearbeiten" im Ergebnis nachtragen).
+  async function runBulkImport() {
+    const urls = bulkText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (urls.length === 0) return;
+
+    setIsBulkRunning(true);
+    const results = [];
+    setBulkResults(results);
+
+    for (const targetUrl of urls) {
+      let entry;
+      try {
+        new URL(targetUrl);
+      } catch {
+        results.push({ url: targetUrl, status: "failed", reason: "Ungültiger Link" });
+        setBulkResults([...results]);
+        continue;
+      }
+
+      if (isTesterMode() && hasReachedImportLimit()) {
+        results.push({ url: targetUrl, status: "skipped", reason: "Test-Limit erreicht" });
+        setBulkResults([...results]);
+        continue;
+      }
+      if (isTesterMode() && targetUrl.toLowerCase().includes("instagram.com")) {
+        results.push({ url: targetUrl, status: "failed", reason: "Instagram in Testversion nicht unterstützt" });
+        setBulkResults([...results]);
+        continue;
+      }
+
+      const existingByUrl = recipes.find(
+        (r) => r.sourceUrl && normalizeUrl(r.sourceUrl) === normalizeUrl(targetUrl)
+      );
+      if (existingByUrl) {
+        results.push({
+          url: targetUrl,
+          status: "skipped",
+          reason: "Schon importiert",
+          recipeId: existingByUrl.id,
+          title: existingByUrl.title,
+        });
+        setBulkResults([...results]);
+        continue;
+      }
+
+      try {
+        const result = await importFromLink(targetUrl, { embedImage: isThumbnailDownloadEnabled() });
+        const foundNothing =
+          !result.title && (!result.ingredients || result.ingredients.length === 0) &&
+          (!result.steps || result.steps.length === 0);
+        if (foundNothing) {
+          results.push({ url: targetUrl, status: "failed", reason: "Kein Rezept gefunden" });
+          setBulkResults([...results]);
+          continue;
+        }
+        const created = addRecipe({
+          title: result.title || "",
+          image: result.image || "",
+          ingredients: result.ingredients || [],
+          steps: result.steps || [],
+          cookTime: result.cookTime || "",
+          servings: result.servings || "",
+          caloriesPerServing: result.caloriesPerServing || "",
+          sourceUrl: targetUrl,
+          platform: result.platform || null,
+        });
+        if (isTesterMode()) recordSuccessfulImport();
+        entry = { url: targetUrl, status: "success", recipeId: created.id, title: created.title };
+      } catch (err) {
+        console.error(err);
+        entry = { url: targetUrl, status: "failed", reason: "Import fehlgeschlagen" };
+      }
+      results.push(entry);
+      setBulkResults([...results]);
+    }
+
+    setIsBulkRunning(false);
+  }
 
   async function handleExtractFromText() {
     if (!manualText.trim()) {
@@ -267,6 +359,30 @@ export default function AddRecipe() {
             </button>
           )}
 
+          {!(isTesterMode() && hasReachedImportLimit()) && (
+            <button
+              type="button"
+              onClick={() => {
+                setBulkText("");
+                setBulkResults(null);
+                setMode("bulkInput");
+              }}
+              className="flex w-full items-center gap-3 rounded-[var(--radius-card)] border border-sand-line bg-cream-card p-4 text-left"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive/10 text-olive">
+                <Layers size={20} />
+              </span>
+              <span>
+                <span className="block font-display text-base font-medium text-ink">
+                  Mehrere Links importieren
+                </span>
+                <span className="block text-xs text-ink-soft">
+                  Ein Link pro Zeile, wird nacheinander importiert
+                </span>
+              </span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => {
@@ -287,6 +403,86 @@ export default function AddRecipe() {
               </span>
             </span>
           </button>
+        </div>
+      )}
+
+      {mode === "bulkInput" && (
+        <div className="mt-6 space-y-3 px-4">
+          {!bulkResults ? (
+            <>
+              <p className="text-sm text-ink-soft">
+                Ein Link pro Zeile. Jedes gefundene Rezept wird direkt gespeichert (kein
+                Kontrollschritt) – Kategorien & Co. lässt sich danach für jedes einzeln
+                nachtragen.
+              </p>
+              <textarea
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                rows={8}
+                placeholder={"https://www.tiktok.com/@…\nhttps://www.tiktok.com/@…\n…"}
+                className="form-input"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={runBulkImport}
+                disabled={!bulkText.trim()}
+                className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-chip)] bg-olive py-3 text-sm font-semibold text-cream disabled:opacity-70"
+              >
+                Importieren
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-ink-soft">
+                {isBulkRunning
+                  ? `Importiere … (${bulkResults.length}/${bulkText.split("\n").map((l) => l.trim()).filter(Boolean).length})`
+                  : `Fertig: ${bulkResults.filter((r) => r.status === "success").length} importiert, ${bulkResults.filter((r) => r.status !== "success").length} übersprungen/fehlgeschlagen.`}
+              </p>
+              <div className="space-y-1.5">
+                {bulkResults.map((r, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 rounded-[var(--radius-card)] border border-sand-line bg-cream-card px-3 py-2.5"
+                  >
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                        r.status === "success" ? "bg-olive/10 text-olive" : "bg-honey/10 text-honey"
+                      }`}
+                    >
+                      {r.status === "success" ? <Check size={14} /> : <X size={14} />}
+                    </span>
+                    <div className="min-w-0 flex-1 text-sm">
+                      <p className="truncate text-ink">{r.title || r.url}</p>
+                      {r.reason && <p className="text-xs text-ink-soft">{r.reason}</p>}
+                    </div>
+                    {r.recipeId && (
+                      <Link
+                        to={`/recipe/${r.recipeId}/edit`}
+                        className="shrink-0 text-xs font-medium text-olive underline"
+                      >
+                        Bearbeiten
+                      </Link>
+                    )}
+                  </div>
+                ))}
+                {isBulkRunning && (
+                  <div className="flex items-center gap-2.5 rounded-[var(--radius-card)] border border-sand-line bg-cream-card px-3 py-2.5 text-sm text-ink-soft">
+                    <Loader2 size={16} className="animate-spin shrink-0" /> Wird importiert …
+                  </div>
+                )}
+              </div>
+              {!isBulkRunning && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/all-recipes")}
+                  className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-chip)] bg-olive py-3 text-sm font-semibold text-cream"
+                >
+                  Fertig
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -411,7 +607,7 @@ export default function AddRecipe() {
               Importiert – bitte kurz prüfen und bei Bedarf ergänzen, bevor du speicherst.
             </p>
           )}
-          {prefill?.sourceUrl && prefill?.image && (
+          {prefill?.sourceUrl && prefill?.image && !isThumbnailDownloadEnabled() && (
             <div className="mx-4 mt-3">
               <ImageDisclaimerBanner previewUrl={prefill.image} />
             </div>

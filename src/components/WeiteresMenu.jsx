@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
-import { Upload, Tag, Bug, Lightbulb, Moon, X, Loader2, Check } from "lucide-react";
+import { Upload, Tag, Bug, Lightbulb, Moon, ImageDown, X, Loader2, Check } from "lucide-react";
 import { exportData, importDataFromFile } from "../data/backup";
 import { sendFeedback } from "../data/feedbackApi";
 import { getCustomCategories, addCustomCategory, removeCustomCategory } from "../data/customCategories";
 import { getTheme, setTheme } from "../data/theme";
+import { isThumbnailDownloadEnabled, setThumbnailDownloadEnabled } from "../data/imageDownloadSetting";
 import ImportModeModal from "./ImportModeModal";
 
 /**
@@ -35,6 +36,7 @@ export default function WeiteresMenu({ isOpen, onClose }) {
             <SpeedDialItem icon={Tag} label="Kategorien hinzufügen" onClick={() => openPanel("add-category")} />
             <SpeedDialItem icon={Upload} label="Import/Export" onClick={() => openPanel("import-export")} />
             <SpeedDialItem icon={Moon} label="Darstellung" onClick={() => openPanel("theme")} />
+            <SpeedDialItem icon={ImageDown} label="Bild-Download" onClick={() => openPanel("image-download")} />
           </div>
         </div>
       )}
@@ -42,6 +44,7 @@ export default function WeiteresMenu({ isOpen, onClose }) {
       {activePanel === "import-export" && <ImportExportPanel onClose={() => setActivePanel(null)} />}
       {activePanel === "add-category" && <AddCategoryPanel onClose={() => setActivePanel(null)} />}
       {activePanel === "theme" && <ThemePanel onClose={() => setActivePanel(null)} />}
+      {activePanel === "image-download" && <ImageDownloadPanel onClose={() => setActivePanel(null)} />}
       {activePanel === "bug" && (
         <FeedbackFormPanel
           title="Fehler melden"
@@ -193,6 +196,36 @@ function ThemePanel({ onClose }) {
           </button>
         ))}
       </div>
+    </FloatingPanel>
+  );
+}
+
+function ImageDownloadPanel({ onClose }) {
+  const [enabled, setEnabled] = useState(isThumbnailDownloadEnabled);
+
+  function toggle() {
+    const next = !enabled;
+    setThumbnailDownloadEnabled(next);
+    setEnabled(next);
+  }
+
+  return (
+    <FloatingPanel title="Bild-Download" onClose={onClose}>
+      <p className="text-sm text-ink-soft">
+        Speichert das TikTok/Pinterest-Vorschaubild beim Import dauerhaft (statt nur den
+        Link zu übernehmen, der irgendwann ablaufen kann). Das widerspricht TikToks
+        Nutzungsbedingungen ("einbetten" wird zu "kopieren") - nur für den persönlichen
+        Gebrauch aktivieren.
+      </p>
+      <button
+        type="button"
+        onClick={toggle}
+        className={`mt-3 w-full rounded-[var(--radius-chip)] px-4 py-2.5 text-sm font-semibold ${
+          enabled ? "bg-olive text-cream" : "border border-sand-line bg-cream text-ink"
+        }`}
+      >
+        {enabled ? "Aktiviert – antippen zum Deaktivieren" : "Deaktiviert – antippen zum Aktivieren"}
+      </button>
     </FloatingPanel>
   );
 }
