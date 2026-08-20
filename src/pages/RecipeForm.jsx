@@ -16,6 +16,7 @@ export default function RecipeForm() {
   const navigate = useNavigate();
   const { recipes, editRecipe } = useRecipes();
   const [pendingSave, setPendingSave] = useState(null); // { data, existingRecipe } bei Titel-Dopplung
+  const [saveError, setSaveError] = useState("");
 
   const existingRecipe = recipes.find((r) => r.id === id);
 
@@ -28,7 +29,14 @@ export default function RecipeForm() {
   }
 
   function saveRecipe(data) {
-    editRecipe(id, data);
+    setSaveError("");
+    try {
+      editRecipe(id, data);
+    } catch (err) {
+      console.error(err);
+      setSaveError(err.message || "Speichern fehlgeschlagen.");
+      return;
+    }
     navigate(`/recipe/${id}`);
   }
 
@@ -55,6 +63,9 @@ export default function RecipeForm() {
         <h1 className="font-display text-xl font-semibold text-ink">Rezept bearbeiten</h1>
       </div>
 
+      {saveError && (
+        <p className="mx-4 mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{saveError}</p>
+      )}
       <RecipeFormFields
         initialValues={existingRecipe}
         onSubmit={handleSubmit}

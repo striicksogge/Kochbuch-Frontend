@@ -40,12 +40,43 @@ import DuplicateTitleModal from "../components/DuplicateTitleModal";
  * Rezept. Ein inhaltlicher Vergleich (anderer Link, gleiches Rezept)
  * findet bewusst nicht statt – das wäre ein deutlich größerer Aufwand.
  */
+// Der "Bearbeiten"-Link in der Mehrfach-Import-Ergebnisliste führt auf eine
+// eigene Seite (RecipeForm.jsx, Route /recipe/:id/edit) - beim Zurücknavigieren
+// wird AddRecipe komplett neu gemountet und normaler React-State (useState)
+// ist dann weg, man landet wieder im leeren Auswahlmenü. Die Ergebnisliste
+// deshalb zusätzlich in sessionStorage spiegeln (überlebt nur den Tab, nicht
+// gedacht als dauerhafte Speicherung) und beim Mounten wiederherstellen.
+const BULK_SESSION_KEY = "kochbuch_v2_bulk_import_session";
+
+function loadBulkSession() {
+  try {
+    const raw = sessionStorage.getItem(BULK_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveBulkSession(results) {
+  try {
+    sessionStorage.setItem(BULK_SESSION_KEY, JSON.stringify(results));
+  } catch {
+    // Bloß eine Komfort-Wiederherstellung - wenn sessionStorage aus
+    // irgendeinem Grund nicht schreibbar ist, einfach ohne sie weitermachen.
+  }
+}
+
+function clearBulkSession() {
+  sessionStorage.removeItem(BULK_SESSION_KEY);
+}
+
 export default function AddRecipe() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { recipes, addRecipe } = useRecipes();
 
-  const [mode, setMode] = useState("choose");
+  const restoredBulkResults = loadBulkSession();
+  const [mode, setMode] = useState(restoredBulkResults ? "bulkInput" : "choose");
   const [url, setUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState("");
@@ -60,8 +91,10 @@ export default function AddRecipe() {
   const [textFallbackError, setTextFallbackError] = useState("");
 
   const [bulkText, setBulkText] = useState("");
-  const [bulkResults, setBulkResults] = useState(null); // Array während/nach Mehrfach-Import
+  const [bulkResults, setBulkResults] = useState(restoredBulkResults); // Array während/nach Mehrfach-Import
   const [isBulkRunning, setIsBulkRunning] = useState(false);
+  const [bulkAbortedReason, setBulkAbortedReason] = useState("");
+  const [saveError, setSaveError] = useState("");
 
   function normalizeUrl(u) {
     return u.trim().replace(/\/+$/, "").toLowerCase();
@@ -74,6 +107,7 @@ export default function AddRecipe() {
     setImportError("");
     setImportWarning("");
     setDuplicateRecipe(null);
+    setSaveError("");
 
     if (!targetUrl.trim()) {
       setImportError("Bitte zuerst einen Link einfügen.");
@@ -182,8 +216,15 @@ export default function AddRecipe() {
     if (urls.length === 0) return;
 
     setIsBulkRunning(true);
+    setBulkAbortedReason("");
     const results = [];
     setBulkResults(results);
+
+    function updateResults() {
+      const snapshot = [...results];
+      setBulkResults(snapshot);
+      saveBulkSession(snapshot);
+    }
 
     for (const targetUrl of urls) {
       let entry;
@@ -191,18 +232,18 @@ export default function AddRecipe() {
         new URL(targetUrl);
       } catch {
         results.push({ url: targetUrl, status: "failed", reason: "Ungültiger Link" });
-        setBulkResults([...results]);
+        updateResults();
         continue;
       }
 
       if (isTesterMode() && hasReachedImportLimit()) {
         results.push({ url: targetUrl, status: "skipped", reason: "Test-Limit erreicht" });
-        setBulkResults([...results]);
+        updateResults();
         continue;
       }
       if (isTesterMode() && targetUrl.toLowerCase().includes("instagram.com")) {
         results.push({ url: targetUrl, status: "failed", reason: "Instagram in Testversion nicht unterstützt" });
-        setBulkResults([...results]);
+        updateResults();
         continue;
       }
 
@@ -217,7 +258,7 @@ export default function AddRecipe() {
           recipeId: existingByUrl.id,
           title: existingByUrl.title,
         });
-        setBulkResults([...results]);
+        updateResults();
         continue;
       }
 
@@ -228,7 +269,7 @@ export default function AddRecipe() {
           (!result.steps || result.steps.length === 0);
         if (foundNothing) {
           results.push({ url: targetUrl, status: "failed", reason: "Kein Rezept gefunden" });
-          setBulkResults([...results]);
+          updateResults();
           continue;
         }
         const created = addRecipe({
@@ -246,10 +287,22 @@ export default function AddRecipe() {
         entry = { url: targetUrl, status: "success", recipeId: created.id, title: created.title };
       } catch (err) {
         console.error(err);
-        entry = { url: targetUrl, status: "failed", reason: "Import fehlgeschlagen" };
+        // "Speicher voll" betrifft nicht nur diesen einen Link, sondern JEDEN
+        // weiteren Speicherversuch auch - ohne Abbruch würde die Schleife für
+        // jede restliche URL erneut (sinnlos) importieren und wieder scheitern.
+        const isStorageFull = err.message?.startsWith("Speicher ist voll");
+        entry = { url: targetUrl, status: "failed", reason: isStorageFull ? "Speicher voll" : "Import fehlgeschlagen" };
+        results.push(entry);
+        updateResults();
+        if (isStorageFull) {
+          setBulkAbortedReason(err.message);
+          setIsBulkRunning(false);
+          return;
+        }
+        continue;
       }
       results.push(entry);
-      setBulkResults([...results]);
+      updateResults();
     }
 
     setIsBulkRunning(false);
@@ -286,11 +339,19 @@ export default function AddRecipe() {
   }
 
   function saveRecipe(data) {
-    const created = addRecipe({
-      ...data,
-      sourceUrl: prefill?.sourceUrl || null,
-      platform: prefill?.platform || null,
-    });
+    setSaveError("");
+    let created;
+    try {
+      created = addRecipe({
+        ...data,
+        sourceUrl: prefill?.sourceUrl || null,
+        platform: prefill?.platform || null,
+      });
+    } catch (err) {
+      console.error(err);
+      setSaveError(err.message || "Speichern fehlgeschlagen.");
+      return;
+    }
     if (isTesterMode() && prefill?.sourceUrl) {
       recordSuccessfulImport();
     }
@@ -311,7 +372,14 @@ export default function AddRecipe() {
       <div className="flex items-center gap-3 px-4 pt-4">
         <button
           type="button"
-          onClick={() => (mode === "choose" ? navigate(-1) : setMode("choose"))}
+          onClick={() => {
+            if (mode === "choose") {
+              navigate(-1);
+              return;
+            }
+            clearBulkSession();
+            setMode("choose");
+          }}
           aria-label="Zurück"
           className="flex h-9 w-9 items-center justify-center rounded-full text-ink"
         >
@@ -363,6 +431,7 @@ export default function AddRecipe() {
             <button
               type="button"
               onClick={() => {
+                clearBulkSession();
                 setBulkText("");
                 setBulkResults(null);
                 setMode("bulkInput");
@@ -472,10 +541,18 @@ export default function AddRecipe() {
                   </div>
                 )}
               </div>
+              {bulkAbortedReason && (
+                <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+                  Abgebrochen: {bulkAbortedReason} Die restlichen Links wurden nicht versucht.
+                </p>
+              )}
               {!isBulkRunning && (
                 <button
                   type="button"
-                  onClick={() => navigate("/all-recipes")}
+                  onClick={() => {
+                    clearBulkSession();
+                    navigate("/all-recipes");
+                  }}
                   className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-chip)] bg-olive py-3 text-sm font-semibold text-cream"
                 >
                   Fertig
@@ -611,6 +688,9 @@ export default function AddRecipe() {
             <div className="mx-4 mt-3">
               <ImageDisclaimerBanner previewUrl={prefill.image} />
             </div>
+          )}
+          {saveError && (
+            <p className="mx-4 mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{saveError}</p>
           )}
           <RecipeFormFields
             initialValues={prefill || {}}

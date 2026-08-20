@@ -6,6 +6,28 @@ import { getAllCategoriesIncludingCustom } from "./categories";
 
 const STORAGE_KEY = "kochbuch_v2_recipes";
 
+/**
+ * Zentraler Schreibpunkt für alle Rezept-Änderungen. localStorage hat ein
+ * Limit (meist 5-10 MB je nach Browser) - bei vielen Rezepten mit Fotos
+ * (Titelbild, weitere Fotos, ggf. heruntergeladene Thumbnails) ist das
+ * irgendwann erreicht. Ohne dieses try/catch wirft `setItem` einfach eine
+ * uncaught Exception, die z. B. beim Speichern im Formular oder mitten im
+ * Mehrfach-Import spurlos "nichts passiert" wirken lässt - hier stattdessen
+ * ein klarer, verständlicher Fehler zum Anzeigen in der UI.
+ */
+function persist(recipes) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  } catch (err) {
+    if (err && (err.name === "QuotaExceededError" || err.code === 22)) {
+      throw new Error(
+        "Speicher ist voll – das Rezept konnte nicht gespeichert werden. Bitte Fotos an bestehenden Rezepten entfernen oder ein Backup exportieren und dann ältere Rezepte löschen, um Platz zu schaffen."
+      );
+    }
+    throw err;
+  }
+}
+
 export function getAllRecipes() {
   const raw = localStorage.getItem(STORAGE_KEY);
   return raw ? JSON.parse(raw) : [];
@@ -54,7 +76,7 @@ export function createRecipe(data) {
     platform: data.platform || null,
   };
   recipes.unshift(newRecipe);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  persist(recipes);
   return newRecipe;
 }
 
@@ -82,13 +104,13 @@ export function updateRecipe(id, data) {
     categories: data.categories ?? recipes[index].categories,
     notes: data.notes !== undefined ? data.notes.trim() : recipes[index].notes,
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  persist(recipes);
   return recipes[index];
 }
 
 export function deleteRecipe(id) {
   const recipes = getAllRecipes().filter((r) => r.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  persist(recipes);
 }
 
 /**
@@ -100,7 +122,7 @@ export function restoreRecipe(recipe) {
   const recipes = getAllRecipes();
   if (recipes.some((r) => r.id === recipe.id)) return;
   recipes.unshift(recipe);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  persist(recipes);
 }
 
 export function toggleFavorite(id) {
@@ -108,7 +130,7 @@ export function toggleFavorite(id) {
   const index = recipes.findIndex((r) => r.id === id);
   if (index === -1) return;
   recipes[index] = { ...recipes[index], isFavorite: !recipes[index].isFavorite };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  persist(recipes);
 }
 
 export function markAsCooked(id) {
@@ -120,7 +142,7 @@ export function markAsCooked(id) {
     lastCookedAt: new Date().toISOString(),
     cookCount: (recipes[index].cookCount || 0) + 1,
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  persist(recipes);
 }
 
 export function toggleWantToCook(id) {
@@ -128,7 +150,7 @@ export function toggleWantToCook(id) {
   const index = recipes.findIndex((r) => r.id === id);
   if (index === -1) return;
   recipes[index] = { ...recipes[index], wantToCook: !recipes[index].wantToCook };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  persist(recipes);
 }
 
 /**
@@ -153,7 +175,7 @@ export function duplicateRecipe(id) {
     platform: null,
   };
   recipes.unshift(copy);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  persist(recipes);
   return copy;
 }
 
@@ -176,6 +198,6 @@ export function cleanupStaleCategories() {
     }
     return r;
   });
-  if (changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+  if (changed) persist(cleaned);
   return changed;
 }
