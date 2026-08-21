@@ -22,8 +22,12 @@ export default function SplashScreen({ onFinish }) {
   }, [onFinish]);
 
   return (
+    // Bewusst immer heller Hintergrund, unabhängig vom Dark-Mode-Theme
+    // (siehe data/theme.js): logo.png ist eine statische Grafik mit fest
+    // dunklen Farben, entworfen für einen hellen Hintergrund - im Dark
+    // Mode wäre sie auf dem dann dunklen bg-cream kaum noch zu erkennen.
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-cream transition-opacity duration-300 ${
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[#FAF6EE] transition-opacity duration-300 ${
         fadingOut ? "opacity-0" : "opacity-100"
       }`}
     >
