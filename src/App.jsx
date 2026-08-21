@@ -36,6 +36,11 @@ import BottomNav from "./components/BottomNav";
  * Browser) ein Test-Limit von 10 Importen, siehe data/testerMode.js
  * und AddRecipe.jsx. Löst außerdem zwei kurze Umfragen aus (nach dem
  * ersten Import und nach Erreichen des Limits), siehe data/surveys.js.
+ * Seit dem Firebase-Umstieg braucht die App einen Login (siehe
+ * AuthContext.jsx) - ?tester=1 loggt dafür automatisch anonym ein
+ * (kein Passwort nötig, eigene isolierte Daten pro Gerät), statt den
+ * normalen E-Mail/Passwort-Login-Screen zu zeigen. Muss einmalig in
+ * der Firebase Console aktiviert werden (Anonymous Sign-in).
  *
  * Web-Share-Target (Android/Chrome, App muss installiert sein): TikTok
  * "Teilen" -> REZIPI landet als echter GET-Aufruf mit ?title=/?text=/
@@ -56,6 +61,17 @@ function extractSharedUrl() {
   const match = text?.match(SHARE_URL_PATTERN);
   return match ? match[0] : null;
 }
+// ?tester=1 landet in der Hash-Route-Query (z. B. "#/?tester=1"), NICHT
+// in window.location.search wie extractSharedUrl oben - deshalb direkt
+// aus dem Hash gelesen, unabhängig davon, ob React Router (useSearchParams)
+// zu diesem frühen Zeitpunkt (noch vor dem Login) schon aktiv ist.
+function isTesterLink() {
+  const hash = window.location.hash;
+  const queryIndex = hash.indexOf("?");
+  if (queryIndex === -1) return false;
+  return new URLSearchParams(hash.slice(queryIndex + 1)).get("tester") === "1";
+}
+
 function LoadingScreen() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream">
@@ -65,8 +81,19 @@ function LoadingScreen() {
 }
 
 export default function App() {
-  const { user, authLoading } = useAuth();
+  const { user, authLoading, loginAnonymously } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
+  const [anonLoginState, setAnonLoginState] = useState("idle"); // idle | pending | failed
+
+  useEffect(() => {
+    if (!authLoading && !user && isTesterLink() && anonLoginState === "idle") {
+      setAnonLoginState("pending");
+      loginAnonymously().catch((err) => {
+        console.error("Anonymer Tester-Login fehlgeschlagen:", err);
+        setAnonLoginState("failed");
+      });
+    }
+  }, [authLoading, user, anonLoginState, loginAnonymously]);
 
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
@@ -77,6 +104,14 @@ export default function App() {
   }
 
   if (!user) {
+    // Tester-Link: kurz warten, während der anonyme Login im Hintergrund
+    // läuft, statt kurz den (falschen) E-Mail/Passwort-Screen aufblitzen
+    // zu lassen. Schlägt der anonyme Login fehl (z. B. in der Firebase
+    // Console nicht aktiviert), fällt es auf den normalen Login zurück,
+    // statt den Nutzer für immer auf dem Ladebildschirm hängen zu lassen.
+    if (isTesterLink() && anonLoginState !== "failed") {
+      return <LoadingScreen />;
+    }
     return <Login />;
   }
 
