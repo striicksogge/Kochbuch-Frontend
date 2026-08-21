@@ -12,7 +12,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://kochbuch-backen
  * fehlendem API-Guthaben) wird NICHT als Fehler behandelt – das
  * entscheidet die aufrufende Komponente anhand der zurückgegebenen Felder.
  */
-export async function importFromLink(url, { embedImage = false } = {}) {
+export async function importFromLink(url) {
   const response = await fetch(`${BACKEND_URL}/extract`, {
     method: "POST",
     // "text/plain" statt "application/json": zählt als CORS-"simple request"
@@ -20,7 +20,7 @@ export async function importFromLink(url, { embedImage = false } = {}) {
     // die auf dieser Render-Instanz einen 404 zurückliefert. Der Body bleibt
     // trotzdem gültiges JSON, das Backend parst ihn entsprechend.
     headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ url, ...(embedImage ? { embedImage: true } : {}) }),
+    body: JSON.stringify({ url }),
   });
 
   if (!response.ok) {

@@ -4,7 +4,6 @@ import { exportData, importDataFromFile } from "../data/backup";
 import { sendFeedback } from "../data/feedbackApi";
 import { getCustomCategories, addCustomCategory, removeCustomCategory } from "../data/customCategories";
 import { getTheme, setTheme } from "../data/theme";
-import { isThumbnailDownloadEnabled, setThumbnailDownloadEnabled } from "../data/imageDownloadSetting";
 import { useAuth } from "../context/AuthContext";
 import { useRecipes } from "../context/RecipesContext";
 import ImportModeModal from "./ImportModeModal";
@@ -23,7 +22,6 @@ export default function WeiteresPanels({ activePanel, onClose }) {
       {activePanel === "import-export" && <ImportExportPanel onClose={onClose} />}
       {activePanel === "add-category" && <AddCategoryPanel onClose={onClose} />}
       {activePanel === "theme" && <ThemePanel onClose={onClose} />}
-      {activePanel === "image-download" && <ImageDownloadPanel onClose={onClose} />}
       {activePanel === "bug" && (
         <FeedbackFormPanel
           title="Fehler melden"
@@ -167,36 +165,6 @@ function ThemePanel({ onClose }) {
           </button>
         ))}
       </div>
-    </FloatingPanel>
-  );
-}
-
-function ImageDownloadPanel({ onClose }) {
-  const [enabled, setEnabled] = useState(isThumbnailDownloadEnabled);
-
-  function toggle() {
-    const next = !enabled;
-    setThumbnailDownloadEnabled(next);
-    setEnabled(next);
-  }
-
-  return (
-    <FloatingPanel title="Bild-Download" onClose={onClose}>
-      <p className="text-sm text-ink-soft">
-        Speichert das TikTok/Pinterest-Vorschaubild beim Import dauerhaft (statt nur den
-        Link zu übernehmen, der irgendwann ablaufen kann). Das widerspricht TikToks
-        Nutzungsbedingungen ("einbetten" wird zu "kopieren") - nur für den persönlichen
-        Gebrauch aktivieren.
-      </p>
-      <button
-        type="button"
-        onClick={toggle}
-        className={`mt-3 w-full rounded-[var(--radius-chip)] px-4 py-2.5 text-sm font-semibold ${
-          enabled ? "bg-olive text-cream" : "border border-sand-line bg-cream text-ink"
-        }`}
-      >
-        {enabled ? "Aktiviert – antippen zum Deaktivieren" : "Deaktiviert – antippen zum Aktivieren"}
-      </button>
     </FloatingPanel>
   );
 }

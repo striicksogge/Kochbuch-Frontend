@@ -12,7 +12,6 @@ import {
   TESTER_IMPORT_LIMIT,
 } from "../data/testerMode";
 import { findRecipeByTitle } from "../data/recipeStorage";
-import { isThumbnailDownloadEnabled } from "../data/imageDownloadSetting";
 import RecipeFormFields from "../components/RecipeFormFields";
 import ImageDisclaimerBanner from "../components/ImageDisclaimerBanner";
 import EnglishUnitsNotice, { isEnglishUnitsNoticeHidden } from "../components/EnglishUnitsNotice";
@@ -140,7 +139,7 @@ export default function AddRecipe() {
 
     setIsImporting(true);
     try {
-      const result = await importFromLink(targetUrl, { embedImage: isThumbnailDownloadEnabled() });
+      const result = await importFromLink(targetUrl);
       const newPrefill = {
         title: result.title || "",
         image: result.image || "",
@@ -261,7 +260,7 @@ export default function AddRecipe() {
       }
 
       try {
-        const result = await importFromLink(targetUrl, { embedImage: isThumbnailDownloadEnabled() });
+        const result = await importFromLink(targetUrl);
         const foundNothing =
           !result.title && (!result.ingredients || result.ingredients.length === 0) &&
           (!result.steps || result.steps.length === 0);
@@ -668,7 +667,7 @@ export default function AddRecipe() {
               Importiert – bitte kurz prüfen und bei Bedarf ergänzen, bevor du speicherst.
             </p>
           )}
-          {prefill?.sourceUrl && prefill?.image && !isThumbnailDownloadEnabled() && (
+          {prefill?.sourceUrl && prefill?.image && (
             <div className="mx-4 mt-3">
               <ImageDisclaimerBanner previewUrl={prefill.image} />
             </div>

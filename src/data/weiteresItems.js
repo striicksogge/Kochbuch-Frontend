@@ -1,4 +1,4 @@
-import { Upload, Tag, Bug, Lightbulb, Moon, ImageDown } from "lucide-react";
+import { Upload, Tag, Bug, Lightbulb, Moon } from "lucide-react";
 
 /**
  * Gemeinsame Liste der sechs "Weiteres"-Punkte, geteilt zwischen dem
@@ -13,5 +13,4 @@ export const WEITERES_ITEMS = [
   { id: "add-category", icon: Tag, label: "Kategorien hinzufügen" },
   { id: "import-export", icon: Upload, label: "Import/Export" },
   { id: "theme", icon: Moon, label: "Darstellung" },
-  { id: "image-download", icon: ImageDown, label: "Bild-Download" },
 ];
