@@ -78,7 +78,7 @@ export default function MealPlanPage() {
   }
 
   return (
-    <div className="px-4 pb-24 pt-6">
+    <div className="px-4 pb-24 pt-6 lg:pb-10">
       <div className="flex items-center justify-center gap-3">
         <button
           type="button"

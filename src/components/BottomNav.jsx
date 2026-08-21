@@ -1,23 +1,20 @@
 import { useState } from "react";
-import { House, LayoutGrid, Heart, CalendarDays, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import WeiteresMenu from "./WeiteresMenu";
-
-const NAV_ITEMS = [
-  { id: "home", label: "Start", icon: House, to: "/" },
-  { id: "all", label: "Alle", icon: LayoutGrid, to: "/all-recipes", tourId: "nav-all" },
-  { id: "plan", label: "Plan", icon: CalendarDays, to: "/meal-plan", tourId: "nav-plan" },
-  { id: "favorites", label: "Favoriten", icon: Heart, to: "/favorites", tourId: "nav-favorites" },
-];
+import { NAV_ITEMS } from "../data/navItems";
 
 /**
- * Fixierte Bottom-Navigation, mobile-first. "Suche" wurde entfernt, da
- * die Suchleiste schon ganz oben auf der Startseite erreichbar ist -
- * stattdessen "Alle" (verlinkt auf die vollständige Rezeptliste), damit
- * die Nav nicht zwei Wege zur Suche vorhält. "Plan" führt zur
- * zusammengelegten Essensplan+Einkaufsliste-Seite (siehe
- * pages/PlanAndListPage.jsx) - das hat den fünften Slot für "Weiteres"
- * freigemacht (Speed-Dial-Menü, siehe WeiteresMenu.jsx).
+ * Fixierte Bottom-Navigation, mobile-first, ab Desktop-Breite ("lg",
+ * siehe "lg:hidden" unten) durch die linke Seitenleiste ersetzt (siehe
+ * Sidebar.jsx - beide teilen sich NAV_ITEMS aus data/navItems.js).
+ * "Suche" wurde entfernt, da die Suchleiste schon ganz oben auf der
+ * Startseite erreichbar ist - stattdessen "Alle" (verlinkt auf die
+ * vollständige Rezeptliste), damit die Nav nicht zwei Wege zur Suche
+ * vorhält. "Plan" führt zur zusammengelegten
+ * Essensplan+Einkaufsliste-Seite (siehe pages/PlanAndListPage.jsx) - das
+ * hat den fünften Slot für "Weiteres" freigemacht (Speed-Dial-Menü,
+ * siehe WeiteresMenu.jsx).
  */
 export default function BottomNav() {
   const [weiteresOpen, setWeiteresOpen] = useState(false);
@@ -25,7 +22,7 @@ export default function BottomNav() {
   return (
     <>
       <nav
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-sand-line bg-cream-card/95 backdrop-blur"
+        className="fixed inset-x-0 bottom-0 z-10 border-t border-sand-line bg-cream-card/95 backdrop-blur lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="mx-auto flex max-w-md items-stretch justify-around">

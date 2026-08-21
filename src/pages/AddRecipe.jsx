@@ -357,7 +357,7 @@ export default function AddRecipe() {
   }
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 lg:pb-10">
       <div className="flex items-center gap-3 px-4 pt-4">
         <button
           type="button"

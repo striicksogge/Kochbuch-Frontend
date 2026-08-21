@@ -43,7 +43,7 @@ export default function FeedbackPage() {
 
   if (sent) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-8 pb-24 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center px-8 pb-24 text-center lg:pb-10">
         <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-olive/10 text-olive">
           <Check size={28} />
         </span>
@@ -61,7 +61,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 lg:pb-10">
       <div className="flex items-center gap-3 px-4 pt-4">
         <button
           type="button"

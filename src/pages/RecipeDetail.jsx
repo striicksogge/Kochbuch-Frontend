@@ -86,7 +86,7 @@ export default function RecipeDetail() {
 
   if (!recipe) {
     return (
-      <div className="px-4 pt-6 pb-24 text-center">
+      <div className="px-4 pt-6 pb-24 text-center lg:pb-10">
         <p className="font-display text-lg text-ink">Rezept nicht gefunden.</p>
         <p className="mt-1 text-sm text-ink-soft">
           Vielleicht wurde es gelöscht oder der Link ist nicht mehr gültig.
@@ -123,7 +123,7 @@ export default function RecipeDetail() {
   }
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 lg:pb-10">
       {/* Bild + Zurück-Button */}
       <div className="relative">
         {recipe.image && !imageFailed ? (

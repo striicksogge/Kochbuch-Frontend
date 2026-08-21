@@ -11,7 +11,7 @@ export default function Favorites() {
   const favorites = recipes.filter((r) => r.isFavorite);
 
   return (
-    <div className="px-4 pb-24 pt-6">
+    <div className="px-4 pb-24 pt-6 lg:pb-10">
       <h1 className="font-display text-2xl font-semibold text-ink">Favoriten</h1>
 
       {favorites.length === 0 ? (

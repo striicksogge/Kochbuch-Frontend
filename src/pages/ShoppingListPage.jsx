@@ -65,7 +65,7 @@ export default function ShoppingListPage() {
   }
 
   return (
-    <div className="px-4 pb-24 pt-6">
+    <div className="px-4 pb-24 pt-6 lg:pb-10">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-semibold text-ink">Einkaufsliste</h1>
         {selectedIds.length > 0 && (

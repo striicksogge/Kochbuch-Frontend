@@ -15,6 +15,23 @@ const STEPS = [
   { id: "nav-weiteres", text: "Unter „Weiteres“ findest du Import/Export, eigene Kategorien und kannst Fehler oder Ideen melden." },
 ];
 
+// Seit es die Desktop-Seitenleiste gibt (Sidebar.jsx), tragen manche
+// data-tour-Ziele (nav-all/nav-plan/nav-favorites/nav-weiteres) ZWEI
+// Elemente im DOM - eins in der mobilen Bottom-Nav, eins in der
+// Desktop-Sidebar. Welches sichtbar ist, entscheidet reines CSS
+// (BottomNav "lg:hidden" / Sidebar "hidden lg:flex"), beide liegen aber
+// gleichzeitig im DOM. document.querySelector fände immer nur das
+// ERSTE (ggf. unsichtbare, 0x0-große) Element - deshalb hier gezielt
+// das tatsächlich sichtbare unter mehreren Treffern suchen.
+function queryVisibleTourTarget(id) {
+  const candidates = document.querySelectorAll(`[data-tour="${id}"]`);
+  for (const el of candidates) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return el;
+  }
+  return null;
+}
+
 export default function AppTour({ onFinish }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [rect, setRect] = useState(null);
@@ -27,10 +44,10 @@ export default function AppTour({ onFinish }) {
     // einzigen Effect-Durchlauf, damit React StrictModes doppeltes Aufrufen
     // von Effects im Dev-Modus nicht zu doppelten Sprüngen führt.
     let idx = stepIndex;
-    let el = STEPS[idx] ? document.querySelector(`[data-tour="${STEPS[idx].id}"]`) : null;
+    let el = STEPS[idx] ? queryVisibleTourTarget(STEPS[idx].id) : null;
     while (STEPS[idx] && !el) {
       idx++;
-      el = STEPS[idx] ? document.querySelector(`[data-tour="${STEPS[idx].id}"]`) : null;
+      el = STEPS[idx] ? queryVisibleTourTarget(STEPS[idx].id) : null;
     }
     if (!STEPS[idx] || !el) {
       onFinish();

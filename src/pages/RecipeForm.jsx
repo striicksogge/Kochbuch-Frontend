@@ -37,7 +37,10 @@ export default function RecipeForm() {
       setSaveError(err.message || "Speichern fehlgeschlagen.");
       return;
     }
-    navigate(`/recipe/${id}`);
+    // Zurück zur Seite, von der aus bearbeitet wurde (wie "Abbrechen"),
+    // statt einen neuen Verlaufseintrag draufzulegen - sonst landet
+    // "Zurück" erst wieder auf diesem Formular statt eine Ebene weiter.
+    navigate(-1);
   }
 
   function handleSubmit(data) {
@@ -50,7 +53,7 @@ export default function RecipeForm() {
   }
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 lg:pb-10">
       <div className="flex items-center gap-3 px-4 pt-4">
         <button
           type="button"

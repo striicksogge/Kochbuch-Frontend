@@ -51,7 +51,7 @@ export default function Home() {
 
   if (recipes.length === 0) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-8 pb-24 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center px-8 pb-24 text-center lg:pb-10">
         {isTesterMode() && (
           <div className="mb-6 w-full max-w-sm">
             <TesterModeBanner />
@@ -88,7 +88,7 @@ export default function Home() {
     .slice(0, 6);
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 lg:pb-10">
       {isTesterMode() && <TesterModeBanner />}
       <SearchBar />
 

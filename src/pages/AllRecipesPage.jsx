@@ -187,7 +187,7 @@ export default function AllRecipesPage() {
   }
 
   return (
-    <div className={selectionMode ? "px-4 pb-32 pt-4" : "px-4 pb-24 pt-4"}>
+    <div className={selectionMode ? "px-4 pb-32 pt-4 lg:pb-10" : "px-4 pb-24 pt-4 lg:pb-10"}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link
@@ -361,7 +361,7 @@ export default function AllRecipesPage() {
           {isFiltering ? "Keine passenden Rezepte gefunden." : "Noch keine Rezepte im Kochbuch."}
         </p>
       ) : (
-        <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5">
+        <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
           {displayed.map((recipe) => (
             <RecipeCard
               key={recipe.id}

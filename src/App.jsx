@@ -22,6 +22,7 @@ import PlanAndListPage from "./pages/PlanAndListPage";
 import AllRecipesPage from "./pages/AllRecipesPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import BottomNav from "./components/BottomNav";
+import Sidebar from "./components/Sidebar";
 
 /**
  * App-Grundgerüst mit Routing.
@@ -185,18 +186,23 @@ function AppContent() {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-cream font-body text-ink">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/recipe/:id" element={<RecipeDetail />} />
-          <Route path="/add" element={<AddRecipe />} />
-          <Route path="/recipe/:id/edit" element={<RecipeForm />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="/shopping-list" element={<PlanAndListPage />} />
-          <Route path="/meal-plan" element={<PlanAndListPage />} />
-          <Route path="/all-recipes" element={<AllRecipesPage />} />
-          <Route path="/feedback" element={<FeedbackPage />} />
-        </Routes>
+      <div className="min-h-screen bg-cream font-body text-ink lg:flex">
+        <Sidebar />
+        <main className="min-w-0 lg:flex-1">
+          <div className="lg:mx-auto lg:max-w-5xl lg:px-10 lg:py-8">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/recipe/:id" element={<RecipeDetail />} />
+              <Route path="/add" element={<AddRecipe />} />
+              <Route path="/recipe/:id/edit" element={<RecipeForm />} />
+              <Route path="/favorites" element={<Favorites />} />
+              <Route path="/shopping-list" element={<PlanAndListPage />} />
+              <Route path="/meal-plan" element={<PlanAndListPage />} />
+              <Route path="/all-recipes" element={<AllRecipesPage />} />
+              <Route path="/feedback" element={<FeedbackPage />} />
+            </Routes>
+          </div>
+        </main>
         <BottomNav />
       </div>
       {tourActive && <AppTour onFinish={() => setTourActive(false)} />}
