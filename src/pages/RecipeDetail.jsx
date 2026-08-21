@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Clock, Users, Pencil, Trash2, ArrowLeft, ExternalLink, Heart, Bookmark, Copy, Minus, Plus, Flame, ChefHat, Check, CalendarPlus, ShoppingCart, Share2 } from "lucide-react";
+import { Clock, Users, Pencil, Trash2, ArrowLeft, ExternalLink, Heart, Copy, Minus, Plus, Flame, ChefHat, Check, CalendarPlus, ShoppingCart, Share2 } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
 import { useToast } from "../context/ToastContext";
 import { scaleAmount } from "../data/ingredients";
@@ -14,7 +14,7 @@ import { formatRelativeDate } from "../data/dateUtils";
 export default function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { recipes, removeRecipe, restoreRecipe, toggleFavorite, markAsCooked, toggleWantToCook, duplicateRecipe } =
+  const { recipes, removeRecipe, restoreRecipe, toggleFavorite, markAsCooked, duplicateRecipe } =
     useRecipes();
   const { showToast } = useToast();
 
@@ -148,18 +148,6 @@ export default function RecipeDetail() {
         </button>
 
         <div className="absolute right-4 top-4 flex gap-2">
-          <button
-            type="button"
-            onClick={() => toggleWantToCook(recipe.id)}
-            aria-label={recipe.wantToCook ? 'Von "Will ich noch kochen" entfernen' : 'Zu "Will ich noch kochen" hinzufügen'}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-cream/90 shadow-md backdrop-blur"
-          >
-            <Bookmark
-              size={20}
-              strokeWidth={2}
-              className={recipe.wantToCook ? "fill-olive text-olive" : "text-ink"}
-            />
-          </button>
           <button
             type="button"
             onClick={() => toggleFavorite(recipe.id)}

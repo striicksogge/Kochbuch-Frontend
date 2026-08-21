@@ -102,14 +102,6 @@ export function RecipesProvider({ children }) {
     [user, recipes]
   );
 
-  const toggleWantToCook = useCallback(
-    (id) => {
-      const recipe = recipes.find((r) => r.id === id);
-      return recipe ? storage.toggleWantToCook(user.uid, recipe) : Promise.resolve();
-    },
-    [user, recipes]
-  );
-
   const duplicateRecipe = useCallback(
     (id) => {
       const recipe = recipes.find((r) => r.id === id);
@@ -129,7 +121,6 @@ export function RecipesProvider({ children }) {
         toggleFavorite,
         restoreRecipe,
         markAsCooked,
-        toggleWantToCook,
         duplicateRecipe,
       }}
     >

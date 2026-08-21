@@ -12,12 +12,7 @@ export default function Favorites() {
 
   return (
     <div className="px-4 pb-24 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold text-ink">Favoriten</h1>
-        <Link to="/want-to-cook" className="text-xs font-medium text-olive underline">
-          Will ich noch kochen
-        </Link>
-      </div>
+      <h1 className="font-display text-2xl font-semibold text-ink">Favoriten</h1>
 
       {favorites.length === 0 ? (
         <div className="mt-16 flex flex-col items-center text-center">

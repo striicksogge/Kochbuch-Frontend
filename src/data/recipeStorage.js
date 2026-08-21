@@ -71,7 +71,6 @@ export async function createRecipe(uid, data) {
     steps: data.steps || [],
     categories: data.categories || [],
     isFavorite: false,
-    wantToCook: false,
     sourceUrl: data.sourceUrl || null,
     platform: data.platform || null,
   };
@@ -125,11 +124,7 @@ export async function markAsCooked(uid, recipe) {
   });
 }
 
-export async function toggleWantToCook(uid, recipe) {
-  await updateDoc(recipeDocRef(uid, recipe.id), { wantToCook: !recipe.wantToCook });
-}
-
-/** Legt eine Kopie eines Rezepts als Basis für eine Variante an - eigene ID, ohne Favorit/Merkliste/Kochstatus/Quelle des Originals. */
+/** Legt eine Kopie eines Rezepts als Basis für eine Variante an - eigene ID, ohne Favorit/Kochstatus/Quelle des Originals. */
 export async function duplicateRecipe(uid, original) {
   const id = newId();
   const copy = {
@@ -140,7 +135,6 @@ export async function duplicateRecipe(uid, original) {
     lastCookedAt: null,
     cookCount: 0,
     isFavorite: false,
-    wantToCook: false,
     sourceUrl: null,
     platform: null,
   };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Heart, Bookmark, Check } from "lucide-react";
+import { Clock, Heart, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useRecipes } from "../context/RecipesContext";
 import { formatRelativeDate } from "../data/dateUtils";
@@ -19,7 +19,7 @@ import { formatRelativeDate } from "../data/dateUtils";
  * Häkchen-Kreis oben links zeigt den Status.
  */
 export default function RecipeCard({ recipe, selectionMode = false, selected = false, onToggleSelect }) {
-  const { toggleFavorite, toggleWantToCook } = useRecipes();
+  const { toggleFavorite } = useRecipes();
   const [imageFailed, setImageFailed] = useState(false);
   const showImage = recipe.image && !imageFailed;
 
@@ -27,12 +27,6 @@ export default function RecipeCard({ recipe, selectionMode = false, selected = f
     e.preventDefault(); // verhindert Navigation über den umschließenden Link
     e.stopPropagation();
     toggleFavorite(recipe.id);
-  }
-
-  function handleWantToCookClick(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleWantToCook(recipe.id);
   }
 
   function handleCardClick(e) {
@@ -67,33 +61,18 @@ export default function RecipeCard({ recipe, selectionMode = false, selected = f
             {selected && <Check size={15} strokeWidth={3} />}
           </span>
         ) : (
-          <>
-            <button
-              type="button"
-              onClick={handleFavoriteClick}
-              aria-label={recipe.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
-              className="absolute bottom-2 left-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/40 backdrop-blur-sm"
-            >
-              <Heart
-                size={16}
-                strokeWidth={2}
-                className={recipe.isFavorite ? "fill-honey text-honey" : "text-cream"}
-              />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleWantToCookClick}
-              aria-label={recipe.wantToCook ? 'Von "Will ich noch kochen" entfernen' : 'Zu "Will ich noch kochen" hinzufügen'}
-              className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/40 backdrop-blur-sm"
-            >
-              <Bookmark
-                size={16}
-                strokeWidth={2}
-                className={recipe.wantToCook ? "fill-olive text-olive" : "text-cream"}
-              />
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={handleFavoriteClick}
+            aria-label={recipe.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+            className="absolute bottom-2 left-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/40 backdrop-blur-sm"
+          >
+            <Heart
+              size={16}
+              strokeWidth={2}
+              className={recipe.isFavorite ? "fill-honey text-honey" : "text-cream"}
+            />
+          </button>
         )}
       </div>
       <div className="mt-2 px-1">

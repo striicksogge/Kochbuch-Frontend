@@ -17,9 +17,7 @@ import Home from "./pages/Home";
 import RecipeDetail from "./pages/RecipeDetail";
 import RecipeForm from "./pages/RecipeForm";
 import AddRecipe from "./pages/AddRecipe";
-import SearchPage from "./pages/SearchPage";
 import Favorites from "./pages/Favorites";
-import WantToCook from "./pages/WantToCook";
 import PlanAndListPage from "./pages/PlanAndListPage";
 import AllRecipesPage from "./pages/AllRecipesPage";
 import FeedbackPage from "./pages/FeedbackPage";
@@ -158,9 +156,7 @@ function AppContent() {
           <Route path="/recipe/:id" element={<RecipeDetail />} />
           <Route path="/add" element={<AddRecipe />} />
           <Route path="/recipe/:id/edit" element={<RecipeForm />} />
-          <Route path="/search" element={<SearchPage />} />
           <Route path="/favorites" element={<Favorites />} />
-          <Route path="/want-to-cook" element={<WantToCook />} />
           <Route path="/shopping-list" element={<PlanAndListPage />} />
           <Route path="/meal-plan" element={<PlanAndListPage />} />
           <Route path="/all-recipes" element={<AllRecipesPage />} />
