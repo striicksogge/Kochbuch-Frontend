@@ -79,6 +79,23 @@ export default function RecipeCard({ recipe, selectionMode = false, selected = f
         <h3 className="truncate font-display text-[15px] font-medium text-ink">
           {recipe.title}
         </h3>
+        {recipe.categories?.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {recipe.categories.slice(0, 2).map((cat) => (
+              <span
+                key={cat}
+                className="max-w-full truncate rounded-[var(--radius-chip)] bg-ink/5 px-2 py-0.5 text-[10px] text-ink-soft"
+              >
+                {cat}
+              </span>
+            ))}
+            {recipe.categories.length > 2 && (
+              <span className="shrink-0 rounded-[var(--radius-chip)] bg-ink/5 px-2 py-0.5 text-[10px] text-ink-soft">
+                +{recipe.categories.length - 2}
+              </span>
+            )}
+          </div>
+        )}
         {recipe.cookTime && (
           <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-soft">
             <Clock size={12} strokeWidth={2} />
