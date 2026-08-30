@@ -25,8 +25,8 @@ export default function RecipeFormFields({ initialValues = {}, onSubmit, onCance
   // ändert (Screenshot hochgeladen oder andere URL eingetragen), greift
   // das nicht mehr - dann wird wieder normal der Wert angezeigt.
   // Ausnahme: Liegt das Bild bereits als Data-URL vor (eigener Upload,
-  // oder bei älteren Rezepten aus der inzwischen wieder entfernten
-  // Bild-Download-Funktion), ist es KEIN fremder Link mehr, sondern schon
+  // oder serverseitig heruntergeladen über den Admin-Bild-Download, siehe
+  // data/adminAccess.js), ist es KEIN fremder Link mehr, sondern schon
   // eine eigene, dauerhafte Kopie - deshalb wie ein eigener Upload
   // behandeln (Vorschau zeigen).
   const importedImageUrl =

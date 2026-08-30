@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, Link2, PenLine, Layers, Loader2, CopyCheck, ClipboardPaste, Check, X } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
+import { useAuth } from "../context/AuthContext";
 import { importFromLink, extractFromText } from "../data/extractApi";
 import { hasEnglishUnits } from "../data/ingredients";
 import {
@@ -12,6 +13,7 @@ import {
   TESTER_IMPORT_LIMIT,
 } from "../data/testerMode";
 import { findRecipeByTitle } from "../data/recipeStorage";
+import { isAdmin } from "../data/adminAccess";
 import RecipeFormFields from "../components/RecipeFormFields";
 import ImageDisclaimerBanner from "../components/ImageDisclaimerBanner";
 import EnglishUnitsNotice, { isEnglishUnitsNoticeHidden } from "../components/EnglishUnitsNotice";
@@ -73,6 +75,7 @@ export default function AddRecipe() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { recipes, addRecipe } = useRecipes();
+  const { user } = useAuth();
 
   const restoredBulkResults = loadBulkSession();
   const [mode, setMode] = useState(restoredBulkResults ? "bulkInput" : "choose");
@@ -139,7 +142,7 @@ export default function AddRecipe() {
 
     setIsImporting(true);
     try {
-      const result = await importFromLink(targetUrl);
+      const result = await importFromLink(targetUrl, { embedImage: isAdmin(user) });
       const newPrefill = {
         title: result.title || "",
         image: result.image || "",
@@ -260,7 +263,7 @@ export default function AddRecipe() {
       }
 
       try {
-        const result = await importFromLink(targetUrl);
+        const result = await importFromLink(targetUrl, { embedImage: isAdmin(user) });
         const foundNothing =
           !result.title && (!result.ingredients || result.ingredients.length === 0) &&
           (!result.steps || result.steps.length === 0);
