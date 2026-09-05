@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CopyCheck } from "lucide-react";
 
@@ -8,8 +9,25 @@ import { CopyCheck } from "lucide-react";
  * hier kein harter Stopp - der Nutzer kann bewusst trotzdem speichern
  * (z. B. bei zwei wirklich unterschiedlichen Rezepten mit zufällig
  * gleichem Namen).
+ *
+ * Bug (gemeldet 2026-09-05): Das "Speichern"-Formularfeld sitzt ganz
+ * unten, das Modal erscheint u. a. auf dem Handy ebenfalls unten
+ * (items-end) mit "Trotzdem speichern" ungefähr an derselben Stelle.
+ * Der Finger liegt beim Antippen von "Speichern" noch auf dem
+ * Bildschirm, wenn das Modal an exakt dieser Position aufklappt -
+ * Touch-Browser lösen dadurch quasi einen zweiten Tap auf den neuen
+ * Button an derselben Koordinate aus, das Modal wirkt, als würde es
+ * sich von selbst sofort wieder schließen. Deshalb reagieren die
+ * Buttons die ersten ~350ms nach dem Erscheinen bewusst nicht.
  */
 export default function DuplicateTitleModal({ existingRecipe, onConfirm, onCancel }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 350);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 px-4 pb-24 sm:items-center sm:pb-4">
       <div className="w-full max-w-sm rounded-[var(--radius-card)] bg-cream-card p-4 shadow-lg">
@@ -35,15 +53,15 @@ export default function DuplicateTitleModal({ existingRecipe, onConfirm, onCance
         <div className="mt-4 space-y-2">
           <button
             type="button"
-            onClick={onConfirm}
-            className="w-full rounded-[var(--radius-chip)] bg-olive py-2.5 text-sm font-semibold text-cream"
+            onClick={() => ready && onConfirm()}
+            className="w-full rounded-[var(--radius-chip)] bg-olive py-2.5 text-sm font-semibold text-cream disabled:opacity-70"
           >
             Trotzdem speichern
           </button>
           <button
             type="button"
-            onClick={onCancel}
-            className="w-full rounded-[var(--radius-chip)] border border-sand-line bg-cream-card py-2.5 text-sm font-medium text-ink"
+            onClick={() => ready && onCancel()}
+            className="w-full rounded-[var(--radius-chip)] border border-sand-line bg-cream-card py-2.5 text-sm font-medium text-ink disabled:opacity-70"
           >
             Titel ändern
           </button>
