@@ -1,8 +1,14 @@
 import { useState, useRef } from "react";
-import { X, Loader2, Check } from "lucide-react";
+import { X, Loader2, Check, Pencil } from "lucide-react";
 import { exportData, importDataFromFile } from "../data/backup";
 import { sendFeedback } from "../data/feedbackApi";
-import { getCustomCategories, addCustomCategory, removeCustomCategory } from "../data/customCategories";
+import {
+  getCustomCategories,
+  addCustomCategory,
+  removeCustomCategory,
+  renameCustomCategory,
+} from "../data/customCategories";
+import { renameCategoryInRecipes } from "../data/recipeStorage";
 import { getTheme, setTheme } from "../data/theme";
 import { useAuth } from "../context/AuthContext";
 import { useRecipes } from "../context/RecipesContext";
@@ -170,9 +176,15 @@ function ThemePanel({ onClose }) {
 }
 
 function AddCategoryPanel({ onClose }) {
+  const { user } = useAuth();
+  const { recipes } = useRecipes();
   const [categories, setCategories] = useState(getCustomCategories);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [editingCat, setEditingCat] = useState(null); // Name der Kategorie, die gerade umbenannt wird
+  const [editValue, setEditValue] = useState("");
+  const [editError, setEditError] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
 
   function handleAdd() {
     if (!name.trim()) return;
@@ -191,8 +203,41 @@ function AddCategoryPanel({ onClose }) {
     setCategories(getCustomCategories());
   }
 
+  function startEdit(cat) {
+    setEditingCat(cat);
+    setEditValue(cat);
+    setEditError("");
+  }
+
+  async function saveEdit() {
+    const oldName = editingCat;
+    const trimmed = editValue.trim();
+    if (trimmed === oldName) {
+      setEditingCat(null);
+      return;
+    }
+    const renamed = renameCustomCategory(oldName, trimmed);
+    if (!renamed) {
+      setEditError("Ungültig oder gibt es schon.");
+      return;
+    }
+    setCategories(getCustomCategories());
+    setEditingCat(null);
+    // Rezepte, die die alte Kategorie tragen, im Hintergrund nachziehen -
+    // die Liste selbst ist schon umbenannt, das hier ist nur die
+    // Rezept-Zuordnung, kein Grund den Nutzer warten zu lassen.
+    setIsRenaming(true);
+    try {
+      await renameCategoryInRecipes(user.uid, recipes, oldName, trimmed);
+    } catch (err) {
+      console.error("Kategorie in Rezepten umbenennen fehlgeschlagen:", err);
+    } finally {
+      setIsRenaming(false);
+    }
+  }
+
   return (
-    <FloatingPanel title="Kategorien hinzufügen" onClose={onClose}>
+    <FloatingPanel title="Kategorien ändern" onClose={onClose}>
       <p className="text-sm text-ink-soft">
         Eigene Kategorien stehen danach beim Anlegen/Bearbeiten eines Rezepts unter „Eigene
         Kategorien" zur Auswahl.
@@ -223,18 +268,66 @@ function AddCategoryPanel({ onClose }) {
       {error && <p className="mt-1.5 text-xs text-red-700">{error}</p>}
 
       {categories.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {categories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => handleRemove(c)}
-              className="flex items-center gap-1 rounded-[var(--radius-chip)] bg-ink/5 px-2.5 py-1 text-xs text-ink-soft"
-              aria-label={`${c} entfernen`}
-            >
-              {c} ×
-            </button>
-          ))}
+        <div className="mt-3 space-y-1.5">
+          {isRenaming && (
+            <p className="flex items-center gap-1.5 text-xs text-ink-soft">
+              <Loader2 size={12} className="animate-spin" /> Rezepte werden aktualisiert …
+            </p>
+          )}
+          {categories.map((c) =>
+            editingCat === c ? (
+              <div key={c}>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        saveEdit();
+                      }
+                      if (e.key === "Escape") setEditingCat(null);
+                    }}
+                    className="form-input flex-1"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={saveEdit}
+                    aria-label="Umbenennen speichern"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-olive text-cream"
+                  >
+                    <Check size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingCat(null)}
+                    aria-label="Umbenennen abbrechen"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-sand-line text-ink-soft"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+                {editError && <p className="mt-1 text-xs text-red-700">{editError}</p>}
+              </div>
+            ) : (
+              <div
+                key={c}
+                className="flex items-center justify-between rounded-[var(--radius-chip)] bg-ink/5 px-3 py-1.5 text-xs text-ink-soft"
+              >
+                <span className="text-ink">{c}</span>
+                <span className="flex items-center gap-2.5">
+                  <button type="button" onClick={() => startEdit(c)} aria-label={`${c} bearbeiten`}>
+                    <Pencil size={13} />
+                  </button>
+                  <button type="button" onClick={() => handleRemove(c)} aria-label={`${c} entfernen`}>
+                    <X size={13} />
+                  </button>
+                </span>
+              </div>
+            )
+          )}
         </div>
       )}
     </FloatingPanel>

@@ -4,7 +4,7 @@ import { Clock, Users, Pencil, Trash2, ArrowLeft, ExternalLink, Heart, Copy, Min
 import { useRecipes } from "../context/RecipesContext";
 import { useToast } from "../context/ToastContext";
 import { scaleAmount } from "../data/ingredients";
-import { WEEKDAYS, getMealPlan, saveMealPlan } from "../data/mealPlanStorage";
+import { WEEKDAYS, WEEK_COUNT, WEEK_LABELS, getMealPlan, saveMealPlan } from "../data/mealPlanStorage";
 import { getShoppingListState, saveSelectedRecipeIds } from "../data/shoppingListStorage";
 import { formatRelativeDate } from "../data/dateUtils";
 
@@ -23,6 +23,7 @@ export default function RecipeDetail() {
   const [checkedIngredients, setCheckedIngredients] = useState(new Set());
   const [imageFailed, setImageFailed] = useState(false);
   const [showDayPicker, setShowDayPicker] = useState(false);
+  const [pickerWeekOffset, setPickerWeekOffset] = useState(0);
 
   useEffect(() => {
     setCurrentServings(recipe?.servings || 4);
@@ -39,11 +40,13 @@ export default function RecipeDetail() {
   }
 
   function handleAssignToDay(dayKey, dayLabel) {
-    const plan = getMealPlan();
+    const plan = getMealPlan(pickerWeekOffset);
     plan[dayKey] = recipe.id;
-    saveMealPlan(plan);
+    saveMealPlan(plan, pickerWeekOffset);
     setShowDayPicker(false);
-    showToast({ message: `"${recipe.title}" für ${dayLabel} eingeplant` });
+    showToast({
+      message: `"${recipe.title}" für ${dayLabel} (${WEEK_LABELS[pickerWeekOffset]}) eingeplant`,
+    });
   }
 
   function handleAddToShoppingList() {
@@ -263,7 +266,10 @@ export default function RecipeDetail() {
           </button>
           <button
             type="button"
-            onClick={() => setShowDayPicker((v) => !v)}
+            onClick={() => {
+              setShowDayPicker((v) => !v);
+              setPickerWeekOffset(0);
+            }}
             className="flex items-center gap-1.5 rounded-[var(--radius-chip)] border border-sand-line bg-cream-card px-4 py-2 text-sm font-medium text-ink"
           >
             <CalendarPlus size={15} /> Zum Essensplan
@@ -285,7 +291,24 @@ export default function RecipeDetail() {
         </div>
 
         {showDayPicker && (
-          <div className="mt-2 flex flex-wrap gap-1.5 rounded-[var(--radius-card)] border border-sand-line bg-cream-card p-2.5">
+          <div className="mt-2 rounded-[var(--radius-card)] border border-sand-line bg-cream-card p-2.5">
+            {WEEK_COUNT > 1 && (
+              <div className="mb-2.5 flex rounded-[var(--radius-chip)] border border-sand-line bg-cream p-0.5 text-xs">
+                {WEEK_LABELS.map((label, offset) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setPickerWeekOffset(offset)}
+                    className={`flex-1 rounded-[calc(var(--radius-chip)-2px)] px-2.5 py-1.5 font-medium ${
+                      pickerWeekOffset === offset ? "bg-olive text-cream" : "text-ink-soft"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-1.5">
             {WEEKDAYS.map((day) => (
               <button
                 key={day.key}
@@ -296,6 +319,7 @@ export default function RecipeDetail() {
                 {day.label}
               </button>
             ))}
+            </div>
           </div>
         )}
 

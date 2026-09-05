@@ -10,7 +10,7 @@ import { Upload, Tag, Bug, Lightbulb, Moon } from "lucide-react";
 export const WEITERES_ITEMS = [
   { id: "idea", icon: Lightbulb, label: "Ideen für REZIPI" },
   { id: "bug", icon: Bug, label: "Fehler melden" },
-  { id: "add-category", icon: Tag, label: "Kategorien hinzufügen" },
+  { id: "add-category", icon: Tag, label: "Kategorien ändern" },
   { id: "import-export", icon: Upload, label: "Import/Export" },
   { id: "theme", icon: Moon, label: "Darstellung" },
 ];

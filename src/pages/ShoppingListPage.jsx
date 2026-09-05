@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Check, ShoppingCart, X } from "lucide-react";
+import { Check, ShoppingCart, X, Share2 } from "lucide-react";
 import { useRecipes } from "../context/RecipesContext";
+import { useToast } from "../context/ToastContext";
 import { buildShoppingList } from "../data/shoppingList";
 import { formatIngredient } from "../data/ingredients";
 import {
@@ -23,6 +24,7 @@ import {
  */
 export default function ShoppingListPage() {
   const { recipes } = useRecipes();
+  const { showToast } = useToast();
   const initial = getShoppingListState();
 
   const [selectedIds, setSelectedIds] = useState(
@@ -64,14 +66,76 @@ export default function ShoppingListPage() {
     return `${name.toLowerCase()}|${(unit || "").toLowerCase()}`;
   }
 
+  // Als reiner Text exportierbar (z. B. zum Einfügen in Handynotizen) -
+  // bewusst kein Datei-Download: Web-Share (mit Zwischenablage-Fallback,
+  // gleiches Muster wie beim Rezept-Teilen) landet auf dem Handy direkt
+  // im Teilen-Menü, von wo aus sich eine Notizen-App als Ziel wählen
+  // lässt, ohne den Umweg über eine heruntergeladene Datei. Bereits
+  // abgehakte Zutaten werden ausgelassen - die hat man ja schon.
+  function buildShareText() {
+    const lines = ["Einkaufsliste (REZIPI)", ""];
+    if (groupByRecipe) {
+      uniqueRecipes.forEach((recipe) => {
+        const items = (recipe.ingredients || [])
+          .map((ing) => (typeof ing === "string" ? { name: ing } : ing))
+          .filter((ing) => (ing.name || "").trim())
+          .filter((ing) => !checkedKeys.has(ingredientKey(ing.name.trim(), ing.unit || "")));
+        if (items.length === 0) return;
+        lines.push(recipe.title);
+        items.forEach((ing) => lines.push(`- ${formatIngredient(ing)}`));
+        lines.push("");
+      });
+    } else {
+      shoppingItems
+        .filter((item) => !checkedKeys.has(ingredientKey(item.name, item.unit)))
+        .forEach((item) => {
+          const amount = item.displayAmount ? `${item.displayAmount} ${item.unit} ` : "";
+          lines.push(`- ${amount}${item.name}`);
+        });
+    }
+    return lines.join("\n").trim();
+  }
+
+  async function handleShare() {
+    const text = buildShareText();
+    if (!text) {
+      showToast({ message: "Nichts zu teilen – alles schon abgehakt?" });
+      return;
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Einkaufsliste", text });
+      } catch {
+        // Nutzer hat den Teilen-Dialog abgebrochen - kein Fehler, kein Toast.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast({ message: "Einkaufsliste kopiert" });
+    } catch (err) {
+      console.error(err);
+      showToast({ message: "Teilen/Kopieren nicht möglich" });
+    }
+  }
+
   return (
     <div className="px-4 pb-24 pt-6 lg:pb-10">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-semibold text-ink">Einkaufsliste</h1>
         {selectedIds.length > 0 && (
-          <button type="button" onClick={clearList} className="text-xs text-ink-soft underline">
-            Liste leeren
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex items-center gap-1 text-xs font-medium text-olive-deep"
+            >
+              <Share2 size={13} /> Teilen
+            </button>
+            <button type="button" onClick={clearList} className="text-xs text-ink-soft underline">
+              Liste leeren
+            </button>
+          </div>
         )}
       </div>
 

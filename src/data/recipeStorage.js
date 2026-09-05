@@ -177,6 +177,27 @@ export function findRecipeByTitle(recipes, title, excludeId = null) {
  * anklickbar sind. Läuft einmal nach dem ersten Laden der Rezepte,
  * schreibt nur Dokumente, bei denen sich tatsächlich etwas ändert.
  */
+/**
+ * Ersetzt eine Kategorie in allen Rezepten, die sie tragen, durch einen
+ * neuen Namen (für "Kategorie umbenennen" in WeiteresPanels.jsx) - ohne
+ * das würde die Rezept-Zuordnung beim Umbenennen der Kategorie in
+ * customCategories.js stillschweigend verloren gehen (die nächste
+ * cleanupStaleCategories()-Bereinigung würde den alten Namen sonst
+ * einfach entfernen, statt ihn zu migrieren). Set() gegen doppelte
+ * Einträge, falls die neue Kategorie beim Rezept schon zufällig
+ * zusätzlich vorhanden ist.
+ */
+export async function renameCategoryInRecipes(uid, recipes, oldName, newName) {
+  const affected = recipes.filter((r) => (r.categories || []).includes(oldName));
+  await Promise.all(
+    affected.map((r) => {
+      const nextCategories = [...new Set(r.categories.map((c) => (c === oldName ? newName : c)))];
+      return updateDoc(recipeDocRef(uid, r.id), { categories: nextCategories });
+    })
+  );
+  return affected.length;
+}
+
 export async function cleanupStaleCategories(uid, recipes) {
   const validNames = getAllCategoriesIncludingCustom();
   const updates = recipes
