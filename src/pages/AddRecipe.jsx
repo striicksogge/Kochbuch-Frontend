@@ -609,7 +609,8 @@ export default function AddRecipe() {
         <div className="mt-6 space-y-3 px-4">
           <div className="rounded-[var(--radius-card)] border border-honey/40 bg-honey/10 p-3">
             <p className="text-sm text-ink">
-              In der Beschreibung stand kein Rezept – vermutlich wird es im Video gesagt oder steht in den Kommentaren.
+              {importWarning ||
+                "In der Beschreibung stand kein Rezept – vermutlich wird es im Video gesagt oder steht in den Kommentaren."}
             </p>
             <p className="mt-1.5 text-xs text-ink-soft">
               Schau's dir in TikTok an und kopier den Text hier rein (Zutaten, Zubereitung – so wie du ihn findest). Wir strukturieren ihn für dich.
